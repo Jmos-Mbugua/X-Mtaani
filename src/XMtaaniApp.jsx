@@ -46,10 +46,14 @@ import {
 import {
   generateAnonymousName,
   getCurrentUser,
+  getDemoAccounts,
   getFollowedUsers,
   getLikeCounts,
   getLikedPostIds,
-  saveCurrentUser,
+  resetDemoData,
+  signIn,
+  signOut,
+  signUp,
   toggleFollowedUser,
   toggleLikedPost,
 } from "./services/userService";
@@ -62,6 +66,23 @@ const initialForm = {
   location: "",
   description: "",
   media: null,
+};
+
+const buildInitialReportForm = (user) => ({
+  ...initialForm,
+  ward: user?.ward || "",
+  constituency: user?.constituency || "",
+  location: user?.estate || "",
+});
+
+const initialAuthForm = {
+  email: "",
+  password: "",
+  anonymousUsername: "",
+  county: "Nairobi",
+  constituency: "Roysambu",
+  ward: "Zimmerman",
+  estate: "Mirema",
 };
 
 const inputClass =
@@ -104,6 +125,10 @@ function formatReportDate(value) {
 
 function getAuthorName(report) {
   return report.authorName || "Anonymous Resident";
+}
+
+function getUserDisplayName(user) {
+  return user?.anonymousUsername || user?.username || "Anonymous Resident";
 }
 
 function getAuthorId(report) {
@@ -510,6 +535,196 @@ function IdentityModal({ generatedName, identityName, onIdentityNameChange, onSu
   );
 }
 
+function AuthGate({
+  authMode,
+  authForm,
+  authError,
+  generatedName,
+  onAuthFormChange,
+  onDemoFill,
+  onModeChange,
+  onResetDemoData,
+  onSubmit,
+}) {
+  const isSignUp = authMode === "signup";
+  const demoAccounts = getDemoAccounts();
+
+  return (
+    <main className="min-h-screen bg-white text-stone-950">
+      <div className="mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_440px]">
+        <section>
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-700 text-white">
+              <Megaphone size={24} aria-hidden="true" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight">X-Mtaani</h1>
+              <p className="text-sm font-semibold text-stone-500">
+                Demo-only civic reporting auth
+              </p>
+            </div>
+          </div>
+          <p className="mt-6 max-w-xl text-lg font-semibold leading-8 text-stone-700">
+            Sign in as a local anonymous resident to test the feed with seeded
+            Kenyan locations. This is localStorage demo auth only and is not
+            production-secure.
+          </p>
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900">
+            Passwords are stored locally for demo testing only. Future versions
+            should use a secure authentication provider.
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 grid grid-cols-2 gap-2 rounded-full bg-stone-100 p-1">
+            <button
+              className={`rounded-full px-4 py-2 text-sm font-black transition ${
+                !isSignUp ? "bg-white text-emerald-800 shadow-sm" : "text-stone-600"
+              }`}
+              type="button"
+              onClick={() => onModeChange("signin")}
+            >
+              Sign in
+            </button>
+            <button
+              className={`rounded-full px-4 py-2 text-sm font-black transition ${
+                isSignUp ? "bg-white text-emerald-800 shadow-sm" : "text-stone-600"
+              }`}
+              type="button"
+              onClick={() => onModeChange("signup")}
+            >
+              Sign up
+            </button>
+          </div>
+
+          <form className="grid gap-3" onSubmit={onSubmit}>
+            <Field label="Email">
+              <input
+                className={inputClass}
+                name="email"
+                type="email"
+                value={authForm.email}
+                onChange={onAuthFormChange}
+                placeholder="you@example.com"
+                required
+              />
+            </Field>
+            <Field label="Password">
+              <input
+                className={inputClass}
+                name="password"
+                type="password"
+                value={authForm.password}
+                onChange={onAuthFormChange}
+                placeholder="Demo password"
+                required
+              />
+            </Field>
+
+            {isSignUp && (
+              <>
+                <Field label="Anonymous username">
+                  <input
+                    className={inputClass}
+                    name="anonymousUsername"
+                    value={authForm.anonymousUsername}
+                    onChange={onAuthFormChange}
+                    placeholder={generatedName}
+                  />
+                </Field>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="County">
+                    <input
+                      className={inputClass}
+                      name="county"
+                      value={authForm.county}
+                      onChange={onAuthFormChange}
+                      required
+                    />
+                  </Field>
+                  <Field label="Constituency">
+                    <input
+                      className={inputClass}
+                      name="constituency"
+                      value={authForm.constituency}
+                      onChange={onAuthFormChange}
+                      required
+                    />
+                  </Field>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Ward">
+                    <input
+                      className={inputClass}
+                      name="ward"
+                      value={authForm.ward}
+                      onChange={onAuthFormChange}
+                      required
+                    />
+                  </Field>
+                  <Field label="Private estate">
+                    <input
+                      className={inputClass}
+                      name="estate"
+                      value={authForm.estate}
+                      onChange={onAuthFormChange}
+                      required
+                    />
+                  </Field>
+                </div>
+              </>
+            )}
+
+            {authError && (
+              <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+                {authError}
+              </p>
+            )}
+
+            <button
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-emerald-700 px-5 py-2 text-sm font-black text-white transition hover:bg-emerald-800"
+              type="submit"
+            >
+              {isSignUp ? "Create demo account" : "Sign in"}
+            </button>
+          </form>
+
+          {!isSignUp && (
+            <section className="mt-5">
+              <h2 className="text-sm font-black text-stone-950">Demo accounts</h2>
+              <div className="mt-2 grid gap-2">
+                {demoAccounts.map((account) => (
+                  <button
+                    className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-left transition hover:bg-stone-100"
+                    key={account.email}
+                    type="button"
+                    onClick={() => onDemoFill(account)}
+                  >
+                    <p className="text-sm font-black text-stone-950">
+                      {account.label}
+                    </p>
+                    <p className="text-xs font-semibold text-stone-500">
+                      {account.email}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <button
+            className="mt-5 w-full rounded-full border border-stone-200 px-4 py-2 text-sm font-black text-stone-700 transition hover:bg-stone-50"
+            type="button"
+            onClick={onResetDemoData}
+          >
+            Reset demo data
+          </button>
+        </section>
+      </div>
+    </main>
+  );
+}
+
 function TrustSafetyCard() {
   return (
     <section className="rounded-2xl border border-stone-200 bg-white p-4">
@@ -536,7 +751,9 @@ export default function XMtaaniApp() {
   const [reposts, setReposts] = useState(() => getReposts());
   const [currentUser, setCurrentUser] = useState(() => storedUser);
   const [generatedName] = useState(() => generateAnonymousName());
-  const [identityName, setIdentityName] = useState("");
+  const [authMode, setAuthMode] = useState("signin");
+  const [authForm, setAuthForm] = useState(initialAuthForm);
+  const [authError, setAuthError] = useState("");
   const [likedPostIds, setLikedPostIds] = useState(() =>
     getLikedPostIds(storedUser?.id),
   );
@@ -549,7 +766,7 @@ export default function XMtaaniApp() {
     constituency: "",
     category: "",
   });
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(() => buildInitialReportForm(storedUser));
   const [commentText, setCommentText] = useState("");
   const [copied, setCopied] = useState(false);
   const [sharedPostId, setSharedPostId] = useState("");
@@ -671,12 +888,80 @@ export default function XMtaaniApp() {
     }));
   };
 
-  const submitIdentity = (event) => {
-    event.preventDefault();
-    const user = saveCurrentUser(identityName.trim() || generatedName);
+  const syncSignedInUser = (user) => {
     setCurrentUser(user);
     setLikedPostIds(getLikedPostIds(user.id));
     setFollowedUsers(getFollowedUsers(user.id));
+    setForm((current) => ({
+      ...current,
+      ward: current.ward || user.ward,
+      constituency: current.constituency || user.constituency,
+      location: current.location || user.estate,
+    }));
+  };
+
+  const updateAuthForm = (event) => {
+    setAuthForm((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
+  };
+
+  const submitAuth = (event) => {
+    event.preventDefault();
+    const result =
+      authMode === "signup"
+        ? signUp({
+            ...authForm,
+            anonymousUsername:
+              authForm.anonymousUsername.trim() || generatedName,
+          })
+        : signIn(authForm);
+
+    if (!result.ok) {
+      setAuthError(result.error);
+      return;
+    }
+
+    setAuthError("");
+    syncSignedInUser(result.user);
+  };
+
+  const fillDemoAccount = (account) => {
+    setAuthMode("signin");
+    setAuthError("");
+    setAuthForm((current) => ({
+      ...current,
+      email: account.email,
+      password: account.password,
+    }));
+  };
+
+  const resetDemo = () => {
+    if (!window.confirm("Reset demo users, reports, and social activity?")) {
+      return;
+    }
+
+    const reset = resetDemoData();
+    setReports(reset.reports);
+    setComments([]);
+    setReposts([]);
+    setCurrentUser(null);
+    setLikedPostIds([]);
+    setFollowedUsers([]);
+    setLikeCounts({});
+    setAuthError("");
+    setAuthMode("signin");
+    setAuthForm(initialAuthForm);
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    setCurrentUser(null);
+    setLikedPostIds([]);
+    setFollowedUsers([]);
+    setSelectedReportId(null);
+    setSelectedLeader(null);
   };
 
   const submitReport = (event) => {
@@ -691,7 +976,8 @@ export default function XMtaaniApp() {
       description: form.description.trim(),
       media: form.media,
       authorId: currentUser?.id || "anonymous-resident",
-      authorName: currentUser?.username || "Anonymous Resident",
+      authorName: getUserDisplayName(currentUser),
+      county: currentUser?.county || "",
     };
 
     if (
@@ -705,7 +991,7 @@ export default function XMtaaniApp() {
     }
 
     setReports(addReport(cleaned));
-    setForm(initialForm);
+    setForm(buildInitialReportForm(currentUser));
     setPostOpen(false);
     setActiveView("home");
   };
@@ -728,7 +1014,7 @@ export default function XMtaaniApp() {
   const archiveOwnPost = (report) => {
     if (
       currentUser?.id !== getAuthorId(report) &&
-      currentUser?.username !== getAuthorName(report)
+      getUserDisplayName(currentUser) !== getAuthorName(report)
     ) {
       return;
     }
@@ -744,7 +1030,7 @@ export default function XMtaaniApp() {
       toggleRepost({
         reportId,
         userId: currentUser?.id,
-        username: currentUser?.username,
+        username: getUserDisplayName(currentUser),
       }),
     );
   };
@@ -778,7 +1064,7 @@ export default function XMtaaniApp() {
     setComments(
       addComment({
         reportId: selectedReportId,
-        authorName: currentUser?.username || "Anonymous Resident",
+        authorName: getUserDisplayName(currentUser),
         body,
       }),
     );
@@ -799,18 +1085,18 @@ export default function XMtaaniApp() {
     <PostCard
       key={repostedBy ? `${report.id}-${repostedBy}` : report.id}
       report={report}
-      commentCount={getCommentCount(comments, report.id)}
+      commentCount={(report.comments || 0) + getCommentCount(comments, report.id)}
       followed={followedUsers.includes(getAuthorId(report))}
       liked={likedPostIds.includes(report.id)}
-      likeCount={likeCounts[report.id] || 0}
+      likeCount={(report.likes || 0) + (likeCounts[report.id] || 0)}
       reposted={reposts.some(
         (repost) =>
           repost.originalPostId === report.id && repost.userId === currentUser?.id,
       )}
-      repostCount={getRepostCount(reposts, report.id)}
+      repostCount={(report.reposts || 0) + getRepostCount(reposts, report.id)}
       repostedBy={repostedBy}
       shareActive={sharedPostId === report.id}
-      currentUsername={currentUser?.username}
+      currentUsername={getUserDisplayName(currentUser)}
       currentUserId={currentUser?.id}
       onArchive={() => archiveOwnPost(report)}
       onComment={() => openReport(report.id)}
@@ -1153,17 +1439,24 @@ export default function XMtaaniApp() {
     return renderFeed();
   };
 
+  if (!currentUser) {
+    return (
+      <AuthGate
+        authMode={authMode}
+        authForm={authForm}
+        authError={authError}
+        generatedName={generatedName}
+        onAuthFormChange={updateAuthForm}
+        onDemoFill={fillDemoAccount}
+        onModeChange={setAuthMode}
+        onResetDemoData={resetDemo}
+        onSubmit={submitAuth}
+      />
+    );
+  }
+
   return (
     <main className="min-h-screen bg-white pb-16 text-stone-950 lg:pb-0">
-      {!currentUser && (
-        <IdentityModal
-          generatedName={generatedName}
-          identityName={identityName}
-          onIdentityNameChange={setIdentityName}
-          onSubmit={submitIdentity}
-        />
-      )}
-
       <div className="mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 lg:grid-cols-[88px_minmax(0,620px)_340px] xl:grid-cols-[250px_minmax(0,640px)_360px]">
         <aside className="sticky top-0 z-20 hidden h-screen border-r border-stone-200 bg-white px-3 py-4 lg:flex lg:flex-col">
           <div className="mb-5 flex items-center gap-2 px-2">
@@ -1261,11 +1554,21 @@ export default function XMtaaniApp() {
               Current anonymous user
             </p>
             <p className="mt-1 text-sm font-black text-stone-950">
-              {currentUser?.username || "Not set"}
+              {getUserDisplayName(currentUser)}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-stone-500">
+              {currentUser.ward}, {currentUser.constituency} / {currentUser.county}
             </p>
             <p className="mt-1 text-xs font-semibold text-stone-500">
               Following {followedUsers.length}
             </p>
+            <button
+              className="mt-3 w-full rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-black text-stone-700 transition hover:bg-stone-100"
+              type="button"
+              onClick={handleSignOut}
+            >
+              Sign out
+            </button>
           </div>
         </aside>
 
@@ -1280,14 +1583,23 @@ export default function XMtaaniApp() {
                   {selectedReportId ? "Conversation thread" : viewCopy[activeView][1]}
                 </p>
               </div>
-              <button
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white lg:hidden"
-                type="button"
-                onClick={() => setPostOpen(true)}
-              >
-                <Send size={16} aria-hidden="true" />
-                Post
-              </button>
+              <div className="flex items-center gap-2 lg:hidden">
+                <button
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white"
+                  type="button"
+                  onClick={() => setPostOpen(true)}
+                >
+                  <Send size={16} aria-hidden="true" />
+                  Post
+                </button>
+                <button
+                  className="inline-flex items-center justify-center rounded-full border border-stone-200 px-3 py-2 text-sm font-black text-stone-700"
+                  type="button"
+                  onClick={handleSignOut}
+                >
+                  Sign out
+                </button>
+              </div>
             </div>
 
             {activeView === "home" && !selectedReportId && (

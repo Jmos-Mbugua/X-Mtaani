@@ -35,10 +35,25 @@ const normalizeReport = (report) => {
     ...report,
     authorId: seedAuthor.authorId || report.authorId || report.authorName || "anonymous-resident",
     authorName: seedAuthor.authorName || report.authorName || "Anonymous Resident",
+    county: report.county || "Nairobi",
     media: report.media || null,
     archived: Boolean(report.archived),
+    likes: Number.isFinite(report.likes) ? report.likes : 0,
+    comments: Number.isFinite(report.comments) ? report.comments : 0,
+    reposts: Number.isFinite(report.reposts) ? report.reposts : 0,
     verificationStatus: report.verificationStatus || "Unverified",
+    issueStatus: report.issueStatus || "unresolved",
   };
+};
+
+const withSeedReports = (reports) => {
+  if (reports.length >= 200) {
+    return reports;
+  }
+
+  const existingIds = new Set(reports.map((report) => report.id));
+  const missingSeeds = sampleReports.filter((report) => !existingIds.has(report.id));
+  return [...reports, ...missingSeeds];
 };
 
 export const getReports = () => {
@@ -54,7 +69,7 @@ export const getReports = () => {
     return normalized;
   }
 
-  const normalized = stored.map(normalizeReport);
+  const normalized = withSeedReports(stored).map(normalizeReport);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
   return normalized;
 };
@@ -72,8 +87,13 @@ export const addReport = (report) => {
     authorId: report.authorId || "anonymous-resident",
     authorName: report.authorName || "Anonymous Resident",
     media: report.media || null,
+    county: report.county || "",
     archived: false,
+    likes: report.likes || 0,
+    comments: report.comments || 0,
+    reposts: report.reposts || 0,
     verificationStatus: report.verificationStatus || "Unverified",
+    issueStatus: report.issueStatus || "unresolved",
     id: makeId("report"),
     createdAt: new Date().toISOString(),
   };

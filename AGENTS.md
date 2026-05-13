@@ -192,6 +192,32 @@ DO NOT ADD YET:
 
 ---
 
+## Mock Authentication Rules
+
+For the MVP, authentication is localStorage-based only.
+This is for demo purposes and must not be treated as production-secure.
+
+Users should have:
+- id
+- email
+- password for demo only
+- anonymousUsername
+- county
+- constituency
+- ward
+- estate/area
+
+The app should support:
+- sign up
+- sign in
+- sign out
+- switching users to test different location feeds
+
+Never describe this as production authentication.
+Future version should use Supabase/Auth0/Firebase or another secure auth provider.
+
+---
+
 ## Feed Ranking Rules
 
 X-Mtaani is location-first, not virality-first.

@@ -9,74 +9,140 @@ export const categories = [
   { value: "other", label: "Other" },
 ];
 
-export const sampleReports = [
-  {
-    id: "seed-1",
-    title: "Flooded access road near stage",
-    category: "roads",
-    ward: "Zimmerman",
-    constituency: "Roysambu",
-    location: "Kamiti Road stage",
-    description:
-      "Rain water has opened a deep pothole and matatus are swerving into pedestrians.",
-    createdAt: "2026-05-09T08:30:00.000Z",
-  },
-  {
-    id: "seed-2",
-    title: "No water for four days",
-    category: "water",
-    ward: "Zimmerman",
-    constituency: "Roysambu",
-    location: "Mirema Drive",
-    description:
-      "Several flats have had dry taps since Friday with no notice from the water office.",
-    createdAt: "2026-05-10T10:15:00.000Z",
-  },
-  {
-    id: "seed-3",
-    title: "Streetlights off at bus stop",
-    category: "security",
-    ward: "Zimmerman",
-    constituency: "Roysambu",
-    location: "Base stage",
-    description:
-      "The dark bus stop has become unsafe for people coming home after 8pm.",
-    createdAt: "2026-05-10T18:40:00.000Z",
-  },
-  {
-    id: "seed-4",
-    title: "Garbage pile blocking drainage",
-    category: "waste",
-    ward: "Kilimani",
-    constituency: "Dagoretti North",
-    location: "Kindaruma Road",
-    description:
-      "Uncollected waste has blocked drainage and the smell is affecting nearby kiosks.",
-    createdAt: "2026-05-11T07:05:00.000Z",
-  },
-  {
-    id: "seed-5",
-    title: "Clinic queue has no nurse on duty",
-    category: "health",
-    ward: "Kilimani",
-    constituency: "Dagoretti North",
-    location: "Community dispensary",
-    description:
-      "Patients were asked to return tomorrow even though the facility opened on time.",
-    createdAt: "2026-05-11T11:20:00.000Z",
-  },
-  {
-    id: "seed-6",
-    title: "Transformer sparks during rain",
-    category: "electricity",
-    ward: "Mwiki",
-    constituency: "Kasarani",
-    location: "Njiru junction",
-    description:
-      "The transformer sparks during rain and nearby homes lose power repeatedly.",
-    createdAt: "2026-05-12T06:50:00.000Z",
-  },
+export const kenyanLocations = [
+  ["Nairobi", "Roysambu", ["Zimmerman", "Roysambu", "Kahawa West", "Githurai"], ["Mirema", "TRM Drive", "Kahawa Sukari", "Hunters"]],
+  ["Nairobi", "Kasarani", ["Mwiki", "Kasarani", "Clay City", "Njiru"], ["Sunton", "Seasons", "Mwiki Phase 3", "Njiru Junction"]],
+  ["Nairobi", "Embakasi", ["Pipeline", "Tassia", "Umoja", "Kayole"], ["Fedha", "Nyayo Estate", "Donholm", "Stage 46"]],
+  ["Nairobi", "Westlands", ["Parklands", "Kangemi", "Mountain View", "Kitisuru"], ["Sarit", "Loresho", "Lower Kabete", "Brookside"]],
+  ["Nairobi", "Kibra", ["Laini Saba", "Makina", "Woodley", "Sarangombe"], ["Olympic", "Toi Market", "DC Grounds", "Ayany"]],
+  ["Nairobi", "Langata", ["South C", "Nairobi West", "Karen", "Mugumo-ini"], ["Madaraka", "Wilson", "Otiende", "T-Mall"]],
+  ["Nairobi", "Dagoretti", ["Kilimani", "Kawangware", "Gatina", "Mutuini"], ["Kindaruma", "Yaya", "Lavington", "Riruta"]],
+  ["Kiambu", "Thika", ["Township", "Hospital", "Gatuanyaga", "Kamenu"], ["Makongeni", "Section 9", "Landless", "Ngoingwa"]],
+  ["Kiambu", "Ruiru", ["Biashara", "Gatongora", "Kahawa Sukari", "Gitothua"], ["Membley", "Eastern Bypass", "Kamakis", "Kwa Kairu"]],
+  ["Kiambu", "Juja", ["Juja", "Witeithie", "Murera", "Theta"], ["Highpoint", "Kalimoni", "Gachororo", "Toll Station"]],
+  ["Kiambu", "Kikuyu", ["Kikuyu", "Kinoo", "Sigona", "Karai"], ["Ondiri", "Gitaru", "Muthiga", "Zambezi"]],
+  ["Mombasa", "Mvita", ["Tudor", "Tononoka", "Majengo", "Old Town"], ["Makadara", "Buxton", "King'orani", "Mwembe Tayari"]],
+  ["Mombasa", "Kisauni", ["Bamburi", "Mwakirunge", "Shanzu", "Magogoni"], ["Kiembeni", "Mtopanga", "Vescon", "Fisheries"]],
+  ["Mombasa", "Likoni", ["Mtongwe", "Shika Adabu", "Bofu", "Likoni"], ["Shelly Beach", "Timbwani", "Ujamaa", "Jamvi la Wageni"]],
+  ["Mombasa", "Nyali", ["Frere Town", "Kongowea", "Kadzandani", "Mkomani"], ["Links Road", "Bombolulu", "V.O.K", "Beach Road"]],
+  ["Nakuru", "Nakuru Town East", ["Biashara", "Kivumbini", "Flamingo", "Menengai"], ["Free Area", "Section 58", "Lanet", "Bondeni"]],
+  ["Nakuru", "Nakuru Town West", ["Kaptembwa", "London", "Rhoda", "Shabaab"], ["Kapkures", "Ngata", "Kiti", "Milimani"]],
+  ["Nakuru", "Naivasha", ["Hellsgate", "Lake View", "Mai Mahiu", "Naivasha East"], ["Karagita", "Kabati", "Kayole", "Mirera"]],
+  ["Kisumu", "Kisumu Central", ["Market Milimani", "Nyalenda A", "Railways", "Kondele"], ["Tom Mboya", "Polyview", "Lolwe", "Kibuye"]],
+  ["Kisumu", "Kisumu East", ["Kajulu", "Kolwa East", "Manyatta B", "Nyalunya"], ["Mamboleo", "Nyamasaria", "Kibos", "Migosi"]],
+  ["Kisumu", "Kisumu West", ["South West Kisumu", "Central Kisumu", "West Kisumu", "Kisumu North"], ["Otonglo", "Ojolla", "Holo", "Maseno"]],
+].map(([county, constituency, wards, estates]) => ({
+  county,
+  constituency,
+  wards,
+  estates,
+}));
+
+export const demoAccounts = [
+  { email: "roysambu.demo@xmtaani.local", password: "demo1234", label: "Nairobi / Roysambu" },
+  { email: "ruiru.demo@xmtaani.local", password: "demo1234", label: "Kiambu / Ruiru" },
+  { email: "nyali.demo@xmtaani.local", password: "demo1234", label: "Mombasa / Nyali" },
 ];
+
+const anonymousPrefixes = [
+  "Mtaani Voice",
+  "Anonymous Resident",
+  "Neighbourhood Watch",
+  "Estate Observer",
+  "Civic Witness",
+  "Community Signal",
+];
+
+const titlesByCategory = {
+  roads: ["Blocked drainage on access road", "Potholes slowing emergency access"],
+  water: ["Water outage affecting flats", "Burst pipe flooding kiosks"],
+  electricity: ["Streetlights off near stage", "Transformer outage during rain"],
+  security: ["Unsafe dark footpath", "Increased muggings near bus stop"],
+  waste: ["Uncollected garbage blocking drainage", "Illegal dumping near market"],
+  health: ["Clinic queue without enough staff", "Dispensary stock-out reported"],
+  education: ["Classroom roof leaking", "School crossing needs markings"],
+  other: ["Public toilet needs repair", "Market shed damaged by rain"],
+};
+
+const descriptionsByCategory = {
+  roads: "Residents say the route is unsafe for pedestrians and public service vehicles.",
+  water: "Households report repeated interruptions with no clear notice or repair timeline.",
+  electricity: "The outage is affecting evening movement and small businesses nearby.",
+  security: "Residents are asking for urgent lighting, patrols, and official acknowledgement.",
+  waste: "The smell and blocked drainage are affecting nearby homes and kiosks.",
+  health: "Patients are waiting longer than usual and asking for a response from facility managers.",
+  education: "Parents say learners are being affected and the issue needs quick inspection.",
+  other: "Community members want the responsible office to acknowledge and share an action plan.",
+};
+
+const verificationStatuses = ["Unverified", "Community Confirmed", "Resolved"];
+const issueStatuses = ["unresolved", "pending verification", "resolved"];
+
+const pick = (items, index) => items[index % items.length];
+
+export const buildAnonymousUsername = (index) =>
+  `${pick(anonymousPrefixes, index)} ${100 + ((index * 37) % 9900)}`;
+
+export const generateSeedUsers = (count = 220) =>
+  Array.from({ length: count }, (_, index) => {
+    const demoLocation =
+      index === 0
+        ? kenyanLocations.find((item) => item.constituency === "Roysambu")
+        : index === 1
+          ? kenyanLocations.find((item) => item.constituency === "Ruiru")
+          : index === 2
+            ? kenyanLocations.find((item) => item.constituency === "Nyali")
+            : pick(kenyanLocations, index);
+    const demo = index < 3 ? demoAccounts[index] : null;
+
+    return {
+      id: `seed-user-${String(index + 1).padStart(3, "0")}`,
+      email:
+        demo?.email ||
+        `resident${String(index + 1).padStart(3, "0")}@xmtaani.local`,
+      password: demo?.password || "demo1234",
+      anonymousUsername: buildAnonymousUsername(index),
+      county: demoLocation.county,
+      constituency: demoLocation.constituency,
+      ward: pick(demoLocation.wards, index),
+      estate: pick(demoLocation.estates, index + 1),
+      createdAt: "2026-05-01T08:00:00.000Z",
+      demo: Boolean(demo),
+    };
+  });
+
+export const generateSeedReports = (users = generateSeedUsers(), count = 240) =>
+  Array.from({ length: count }, (_, index) => {
+    const user = pick(users, index);
+    const category = pick(categories, index).value;
+    const createdAt = new Date(Date.UTC(2026, 4, 12, 7, 0, 0));
+    createdAt.setMinutes(createdAt.getMinutes() - index * 43);
+
+    return {
+      id: `seed-report-${String(index + 1).padStart(3, "0")}`,
+      authorId: user.id,
+      authorName: user.anonymousUsername,
+      title: pick(titlesByCategory[category], index),
+      category,
+      county: user.county,
+      constituency: user.constituency,
+      ward: user.ward,
+      location: user.estate,
+      description: descriptionsByCategory[category],
+      createdAt: createdAt.toISOString(),
+      likes: (index * 3) % 41,
+      comments: index % 9,
+      reposts: (index * 2) % 17,
+      verificationStatus: pick(verificationStatuses, index),
+      issueStatus: pick(issueStatuses, index + 1),
+      archived: false,
+      media: null,
+    };
+  });
+
+const seedUsers = generateSeedUsers();
+
+export const sampleReports = generateSeedReports(seedUsers);
 
 export const sampleLeaders = [
   {
