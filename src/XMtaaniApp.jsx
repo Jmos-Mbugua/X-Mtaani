@@ -87,10 +87,10 @@ const initialAuthForm = {
 };
 
 const inputClass =
-  "w-full rounded-xl border border-emerald-100 bg-white/95 px-3 py-2 text-sm text-stone-950 shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
+  "min-h-11 w-full rounded-xl border border-emerald-100 bg-white/95 px-3 py-2 text-sm text-stone-950 shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
 
 const compactSelectClass =
-  "min-w-0 rounded-full border border-emerald-100 bg-white/95 px-3 py-2 text-xs font-semibold text-stone-700 shadow-sm outline-none transition hover:border-emerald-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
+  "min-h-10 min-w-0 rounded-full border border-emerald-100 bg-white/95 px-3 py-2 text-xs font-semibold text-stone-700 shadow-sm outline-none transition hover:border-emerald-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
 
 const viewCopy = {
   home: ["Mtaani", "Anonymous civic reports from your area"],
@@ -267,7 +267,7 @@ function MediaPreview({ media }) {
   if (media.type?.startsWith("video/")) {
     return (
       <video
-        className="mt-3 max-h-80 w-full rounded-2xl border border-emerald-100 bg-stone-950 object-cover shadow-sm"
+        className="mt-3 max-h-72 w-full rounded-2xl border border-emerald-100 bg-stone-950 object-contain shadow-sm sm:max-h-80"
         controls
         src={media.dataUrl}
       />
@@ -277,7 +277,7 @@ function MediaPreview({ media }) {
   return (
     <img
       alt={media.name || "Attached report media"}
-      className="mt-3 max-h-80 w-full rounded-2xl border border-emerald-100 object-cover shadow-sm"
+      className="mt-3 max-h-72 w-full rounded-2xl border border-emerald-100 object-cover shadow-sm sm:max-h-80"
       src={media.dataUrl}
     />
   );
@@ -410,16 +410,16 @@ function PostCard({
   const verificationStatus = getVerificationStatus(report, commentCount);
 
   return (
-    <article className="border-b border-emerald-100/80 bg-white/90 px-4 py-4 shadow-sm shadow-emerald-950/0 transition hover:bg-white hover:shadow-md hover:shadow-emerald-950/5">
+    <article className="overflow-hidden border-b border-emerald-100/80 bg-white/90 px-3 py-4 shadow-sm shadow-emerald-950/0 transition hover:bg-white hover:shadow-md hover:shadow-emerald-950/5 sm:px-4">
       {repostedBy && (
-        <div className="mb-2 flex items-center gap-2 pl-12 text-xs font-bold text-emerald-700">
+        <div className="mb-2 flex items-center gap-2 pl-11 text-xs font-bold text-emerald-700 sm:pl-12">
           <Repeat2 size={14} aria-hidden="true" />
           {repostedBy} reposted
         </div>
       )}
-      <div className="flex gap-3">
+      <div className="flex gap-2 sm:gap-3">
         <button
-          className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-sky-100 text-emerald-800 shadow-sm ring-1 ring-white"
+          className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-sky-100 text-emerald-800 shadow-sm ring-1 ring-white sm:h-10 sm:w-10"
           type="button"
           onClick={onOpen}
           aria-label={`Open report by ${name}`}
@@ -427,9 +427,9 @@ function PostCard({
           <Users size={18} aria-hidden="true" />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
             <button
-              className="font-black text-slate-950 hover:text-emerald-800 hover:underline"
+              className="max-w-full break-words font-black text-slate-950 hover:text-emerald-800 hover:underline"
               type="button"
               onClick={onOpen}
             >
@@ -450,10 +450,10 @@ function PostCard({
             </span>
           </div>
           <button className="block w-full text-left" type="button" onClick={onOpen}>
-            <h2 className="mt-2 text-base font-black leading-snug text-slate-950">
+            <h2 className="mt-2 break-words text-[15px] font-black leading-snug text-slate-950 sm:text-base">
               {report.title}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-slate-700">
+            <p className="mt-1 break-words text-sm leading-6 text-slate-700">
               {report.description}
             </p>
             <MediaPreview media={report.media} />
@@ -464,9 +464,9 @@ function PostCard({
               <span>{report.constituency}</span>
             </div>
           </button>
-          <div className="mt-4 flex items-center justify-between gap-2 rounded-full bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500 ring-1 ring-slate-100 sm:max-w-lg">
+          <div className="mt-4 flex flex-wrap items-center gap-1.5 rounded-2xl bg-slate-50 px-2 py-2 text-sm font-bold text-slate-500 ring-1 ring-slate-100 sm:max-w-lg sm:gap-2 sm:rounded-full sm:px-3">
             <button
-              className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 transition hover:bg-sky-50 hover:text-sky-600"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 py-1 transition hover:bg-sky-50 hover:text-sky-600"
               type="button"
               onClick={onComment}
               aria-label="Comment"
@@ -475,8 +475,8 @@ function PostCard({
               {commentCount}
             </button>
             <button
-              className={`inline-flex items-center gap-2 rounded-full transition ${
-                liked ? "px-2 py-1 text-rose-600" : "px-2 py-1 hover:bg-rose-50 hover:text-rose-600"
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-full transition ${
+                liked ? "px-2.5 py-1 text-rose-600" : "px-2.5 py-1 hover:bg-rose-50 hover:text-rose-600"
               }`}
               type="button"
               onClick={onLike}
@@ -486,8 +486,8 @@ function PostCard({
               {likeCount}
             </button>
             <button
-              className={`inline-flex items-center gap-2 rounded-full transition ${
-                reposted ? "px-2 py-1 text-emerald-700" : "px-2 py-1 hover:bg-emerald-50 hover:text-emerald-700"
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-full transition ${
+                reposted ? "px-2.5 py-1 text-emerald-700" : "px-2.5 py-1 hover:bg-emerald-50 hover:text-emerald-700"
               }`}
               type="button"
               onClick={onRepost}
@@ -497,8 +497,8 @@ function PostCard({
               {repostCount}
             </button>
             <button
-              className={`inline-flex items-center gap-2 rounded-full transition ${
-                shareActive ? "px-2 py-1 text-violet-700" : "px-2 py-1 hover:bg-violet-50 hover:text-violet-700"
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-full transition ${
+                shareActive ? "px-2.5 py-1 text-violet-700" : "px-2.5 py-1 hover:bg-violet-50 hover:text-violet-700"
               }`}
               type="button"
               onClick={onShare}
@@ -509,7 +509,7 @@ function PostCard({
             </button>
             {!isOwnPost && (
               <button
-                className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 transition hover:bg-slate-100 hover:text-slate-950"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 py-1 transition hover:bg-slate-100 hover:text-slate-950"
                 type="button"
                 onClick={() => onFollow(authorId)}
               >
@@ -519,7 +519,7 @@ function PostCard({
             )}
             {isOwnPost && (
               <button
-                className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 transition hover:bg-amber-50 hover:text-amber-700"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 py-1 transition hover:bg-amber-50 hover:text-amber-700"
                 type="button"
                 onClick={onArchive}
               >
@@ -1574,8 +1574,8 @@ export default function XMtaaniApp() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dcfce7_0,#f8fafc_36%,#eef2ff_100%)] pb-16 text-slate-950 lg:pb-0">
-      <div className="mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 bg-white/75 shadow-2xl shadow-slate-950/5 backdrop-blur lg:grid-cols-[88px_minmax(0,620px)_340px] lg:gap-x-3 xl:grid-cols-[250px_minmax(0,640px)_360px]">
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#dcfce7_0,#f8fafc_36%,#eef2ff_100%)] pb-20 text-slate-950 lg:pb-0">
+      <div className="mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 bg-white/75 shadow-2xl shadow-slate-950/5 backdrop-blur lg:grid-cols-[88px_minmax(0,1fr)] lg:gap-x-3 xl:grid-cols-[250px_minmax(0,640px)_360px]">
         <aside className="sticky top-0 z-20 hidden h-screen border-r border-emerald-100 bg-white/85 px-3 py-4 backdrop-blur lg:flex lg:flex-col">
           <div className="mb-5 flex items-center gap-2 px-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-700 to-teal-500 text-white shadow-lg shadow-emerald-200">
@@ -1691,19 +1691,19 @@ export default function XMtaaniApp() {
         </aside>
 
         <section className="min-w-0 border-r border-emerald-100 bg-white/80">
-          <header className="sticky top-0 z-10 border-b border-emerald-100 bg-white/90 px-4 py-3 shadow-sm shadow-slate-950/5 backdrop-blur">
+          <header className="sticky top-0 z-10 border-b border-emerald-100 bg-white/90 px-3 py-3 shadow-sm shadow-slate-950/5 backdrop-blur sm:px-4">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <h1 className="text-xl font-black tracking-tight text-slate-950">
+              <div className="min-w-0">
+                <h1 className="truncate text-lg font-black tracking-tight text-slate-950 sm:text-xl">
                   {selectedReportId ? "Post" : viewCopy[activeView][0]}
                 </h1>
-                <p className="text-sm font-medium text-slate-500">
+                <p className="truncate text-xs font-medium text-slate-500 sm:text-sm">
                   {selectedReportId ? "Conversation thread" : viewCopy[activeView][1]}
                 </p>
               </div>
-              <div className="flex items-center gap-2 lg:hidden">
+              <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 lg:hidden">
                 <button
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-700 to-teal-600 px-4 py-2 text-sm font-black text-white shadow-md shadow-emerald-200"
+                  className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-700 to-teal-600 px-3 py-2 text-sm font-black text-white shadow-md shadow-emerald-200 sm:gap-2 sm:px-4"
                   type="button"
                   onClick={() => setPostOpen(true)}
                 >
@@ -1711,7 +1711,7 @@ export default function XMtaaniApp() {
                   Post
                 </button>
                 <button
-                  className="inline-flex items-center justify-center rounded-full border border-emerald-100 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm"
+                  className="inline-flex min-h-10 items-center justify-center rounded-full border border-emerald-100 bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm sm:text-sm"
                   type="button"
                   onClick={handleSignOut}
                 >
@@ -1721,7 +1721,7 @@ export default function XMtaaniApp() {
             </div>
 
             {activeView === "home" && !selectedReportId && (
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <select
                   className={compactSelectClass}
                   name="ward"
@@ -1771,7 +1771,7 @@ export default function XMtaaniApp() {
           {renderCenter()}
         </section>
 
-        <aside className="hidden bg-slate-50/70 px-4 py-4 lg:block">
+        <aside className="hidden bg-slate-50/70 px-4 py-4 xl:block">
           <div className="sticky top-4 grid gap-4">
             <section className="rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-md shadow-slate-950/5">
               <div className="mb-3 flex items-center gap-2">
@@ -1885,7 +1885,7 @@ export default function XMtaaniApp() {
         </aside>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-emerald-100 bg-white/95 px-2 py-2 shadow-2xl shadow-slate-950/10 backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-emerald-100 bg-white/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-2xl shadow-slate-950/10 backdrop-blur sm:px-2 lg:hidden">
         {[
           [Home, "Home", "home"],
           [Compass, "Explore", "explore"],
@@ -1894,7 +1894,7 @@ export default function XMtaaniApp() {
           [LayoutDashboard, "Dash", "dashboard"],
         ].map(([Icon, label, view]) => (
           <button
-            className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold ${
+            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 text-[10px] font-bold sm:px-2 sm:text-[11px] ${
               activeView === view ? "bg-emerald-50 text-emerald-800" : "text-slate-600"
             }`}
             type="button"
@@ -1908,8 +1908,8 @@ export default function XMtaaniApp() {
       </nav>
 
       {selectedLeader && (
-        <div className="fixed inset-0 z-40 flex items-start justify-center bg-stone-950/40 px-3 py-6 sm:items-center">
-          <section className="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-auto rounded-2xl bg-white p-4 shadow-xl">
+        <div className="fixed inset-0 z-40 flex items-start justify-center bg-stone-950/40 p-0 sm:px-3 sm:py-6 sm:items-center">
+          <section className="h-full w-full overflow-auto rounded-none bg-white p-4 shadow-xl sm:max-h-[calc(100vh-3rem)] sm:max-w-2xl sm:rounded-2xl">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
@@ -1923,7 +1923,7 @@ export default function XMtaaniApp() {
                 </p>
               </div>
               <button
-                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-stone-100"
                 type="button"
                 onClick={() => setSelectedLeader(null)}
                 aria-label="Close leader detail"
@@ -2004,8 +2004,8 @@ export default function XMtaaniApp() {
       )}
 
       {postOpen && (
-        <div className="fixed inset-0 z-40 flex items-start justify-center bg-stone-950/40 px-3 py-6 sm:items-center">
-          <section className="max-h-[calc(100vh-3rem)] w-full max-w-xl overflow-auto rounded-2xl bg-white p-4 shadow-xl">
+        <div className="fixed inset-0 z-40 flex items-start justify-center bg-stone-950/40 p-0 sm:px-3 sm:py-6 sm:items-center">
+          <section className="h-full w-full overflow-auto rounded-none bg-white p-4 shadow-xl sm:max-h-[calc(100vh-3rem)] sm:max-w-xl sm:rounded-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-black">Post anonymously</h2>
@@ -2014,7 +2014,7 @@ export default function XMtaaniApp() {
                 </p>
               </div>
               <button
-                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-stone-100"
                 type="button"
                 onClick={() => setPostOpen(false)}
                 aria-label="Close post modal"
