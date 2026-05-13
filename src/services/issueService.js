@@ -43,6 +43,7 @@ const normalizeReport = (report) => {
     reposts: Number.isFinite(report.reposts) ? report.reposts : 0,
     verificationStatus: report.verificationStatus || "Unverified",
     issueStatus: report.issueStatus || "unresolved",
+    resolvedAt: report.resolvedAt || null,
   };
 };
 
@@ -111,6 +112,46 @@ export const archiveReport = (reportId) => {
   );
   saveReports(nextReports);
   return nextReports;
+};
+
+export const markReportResolved = ({ reportId, authorId }) => {
+  const reports = getReports();
+  let changed = false;
+  const resolvedAt = new Date().toISOString();
+  const nextReports = reports.map((report) => {
+    if (report.id !== reportId || report.authorId !== authorId || report.issueStatus === "resolved") {
+      return report;
+    }
+
+    changed = true;
+    return {
+      ...report,
+      issueStatus: "resolved",
+      verificationStatus: "Resolved",
+      resolvedAt,
+    };
+  });
+
+  if (!changed) {
+    return { reports, comments: getComments(), changed: false };
+  }
+
+  saveReports(nextReports);
+  const comments = getComments();
+  const nextComments = [
+    ...comments,
+    {
+      id: makeId("comment"),
+      reportId,
+      authorName: "X-Mtaani",
+      body: "Original reporter marked this issue as resolved.",
+      createdAt: resolvedAt,
+      system: true,
+    },
+  ];
+  saveComments(nextComments);
+
+  return { reports: nextReports, comments: nextComments, changed: true };
 };
 
 export const getPublicReports = (reports) =>
@@ -212,21 +253,32 @@ export const getFilterOptions = (reports) => ({
 
 export const getPriorityClusters = (reports) => {
   const clusters = getPublicReports(reports).reduce((acc, report) => {
-    const key = `${report.ward}|${report.constituency}|${report.category}`;
+    const key = `${report.county}|${report.constituency}|${report.ward}|${report.category}`;
 
     if (!acc[key]) {
       acc[key] = {
         key,
+        county: report.county,
         ward: report.ward,
         constituency: report.constituency,
         category: report.category,
         count: 0,
+        resolvedCount: 0,
+        unresolvedCount: 0,
+        resolutionRate: 0,
+        resolutionLabel: "Needs Attention",
+        priorityScore: 0,
         latestReportAt: report.createdAt,
         reports: [],
       };
     }
 
     acc[key].count += 1;
+    if (report.issueStatus === "resolved") {
+      acc[key].resolvedCount += 1;
+    } else {
+      acc[key].unresolvedCount += 1;
+    }
     acc[key].reports.push(report);
 
     if (new Date(report.createdAt) > new Date(acc[key].latestReportAt)) {
@@ -236,9 +288,28 @@ export const getPriorityClusters = (reports) => {
     return acc;
   }, {});
 
-  return Object.values(clusters).sort((a, b) => {
-    if (b.count !== a.count) {
-      return b.count - a.count;
+  return Object.values(clusters).map((cluster) => {
+    const resolutionRate = cluster.count ? cluster.resolvedCount / cluster.count : 0;
+    const resolutionLabel =
+      resolutionRate >= 0.6 && cluster.count >= 3
+        ? "Mostly Resolved"
+        : resolutionRate > 0
+          ? "Partially Resolved"
+          : "Needs Attention";
+    const priorityScore =
+      resolutionLabel === "Mostly Resolved"
+        ? cluster.unresolvedCount * 0.5
+        : cluster.unresolvedCount * 2 + cluster.count;
+
+    return {
+      ...cluster,
+      resolutionRate,
+      resolutionLabel,
+      priorityScore,
+    };
+  }).sort((a, b) => {
+    if (b.priorityScore !== a.priorityScore) {
+      return b.priorityScore - a.priorityScore;
     }
 
     return new Date(b.latestReportAt) - new Date(a.latestReportAt);

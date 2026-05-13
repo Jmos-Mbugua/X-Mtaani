@@ -41,6 +41,7 @@ import {
   getRepostCount,
   getReposts,
   getReports,
+  markReportResolved,
   toggleRepost,
 } from "./services/issueService";
 import {
@@ -86,10 +87,10 @@ const initialAuthForm = {
 };
 
 const inputClass =
-  "w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
+  "w-full rounded-xl border border-emerald-100 bg-white/95 px-3 py-2 text-sm text-stone-950 shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
 
 const compactSelectClass =
-  "min-w-0 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-700 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
+  "min-w-0 rounded-full border border-emerald-100 bg-white/95 px-3 py-2 text-xs font-semibold text-stone-700 shadow-sm outline-none transition hover:border-emerald-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
 
 const viewCopy = {
   home: ["Mtaani", "Anonymous civic reports from your area"],
@@ -136,7 +137,7 @@ function getAuthorId(report) {
 }
 
 function getVerificationStatus(report, commentCount = 0) {
-  if (report.verificationStatus === "Resolved") {
+  if (report.issueStatus === "resolved" || report.verificationStatus === "Resolved") {
     return "Resolved";
   }
 
@@ -149,14 +150,29 @@ function getVerificationStatus(report, commentCount = 0) {
 
 function getVerificationClass(status) {
   if (status === "Resolved") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+    return "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm shadow-emerald-100/70";
   }
 
   if (status === "Community Confirmed") {
-    return "border-sky-200 bg-sky-50 text-sky-800";
+    return "border-sky-200 bg-sky-50 text-sky-800 shadow-sm shadow-sky-100/70";
   }
 
-  return "border-stone-200 bg-stone-50 text-stone-600";
+  return "border-amber-200 bg-amber-50 text-amber-800 shadow-sm shadow-amber-100/70";
+}
+
+function getCategoryClass(category) {
+  const classes = {
+    roads: "border-amber-200 bg-amber-50 text-amber-800",
+    water: "border-sky-200 bg-sky-50 text-sky-800",
+    electricity: "border-yellow-200 bg-yellow-50 text-yellow-800",
+    security: "border-slate-200 bg-slate-100 text-slate-800",
+    waste: "border-lime-200 bg-lime-50 text-lime-800",
+    health: "border-rose-200 bg-rose-50 text-rose-800",
+    education: "border-indigo-200 bg-indigo-50 text-indigo-800",
+    other: "border-stone-200 bg-stone-50 text-stone-700",
+  };
+
+  return classes[category] || classes.other;
 }
 
 function getRatingLabel(score) {
@@ -177,22 +193,6 @@ function getRatingLabel(score) {
   }
 
   return "Poor response";
-}
-
-function getMockIssueStatus(report, index) {
-  if (report.verificationStatus === "Resolved") {
-    return "resolved";
-  }
-
-  if (index % 5 === 0) {
-    return "resolved";
-  }
-
-  if (index % 3 === 0) {
-    return "pending verification";
-  }
-
-  return "unresolved";
 }
 
 function getLocationScope(report, user) {
@@ -241,15 +241,19 @@ const locationFeedSections = [
 function SidebarItem({ icon: Icon, label, active = false, onClick }) {
   return (
     <button
-      className={`flex w-full items-center gap-3 rounded-full px-3 py-2 text-left text-sm font-bold transition ${
+      className={`group flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-left text-sm font-bold transition ${
         active
-          ? "bg-emerald-50 text-emerald-800"
-          : "text-stone-800 hover:bg-stone-100"
+          ? "bg-gradient-to-r from-emerald-700 to-teal-600 text-white shadow-md shadow-emerald-200"
+          : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-800"
       }`}
       type="button"
       onClick={onClick}
     >
-      <Icon size={20} aria-hidden="true" />
+      <Icon
+        className={active ? "text-white" : "text-slate-500 group-hover:text-emerald-700"}
+        size={20}
+        aria-hidden="true"
+      />
       <span className="hidden xl:inline">{label}</span>
     </button>
   );
@@ -263,7 +267,7 @@ function MediaPreview({ media }) {
   if (media.type?.startsWith("video/")) {
     return (
       <video
-        className="mt-3 max-h-80 w-full rounded-2xl border border-stone-200 bg-stone-950 object-cover"
+        className="mt-3 max-h-80 w-full rounded-2xl border border-emerald-100 bg-stone-950 object-cover shadow-sm"
         controls
         src={media.dataUrl}
       />
@@ -273,7 +277,7 @@ function MediaPreview({ media }) {
   return (
     <img
       alt={media.name || "Attached report media"}
-      className="mt-3 max-h-80 w-full rounded-2xl border border-stone-200 object-cover"
+      className="mt-3 max-h-80 w-full rounded-2xl border border-emerald-100 object-cover shadow-sm"
       src={media.dataUrl}
     />
   );
@@ -356,7 +360,7 @@ function ReportForm({ form, onChange, onMediaChange, onSubmit }) {
       </Field>
 
       <Field label="Media attachment">
-        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-stone-300 bg-stone-50 px-3 py-3 text-sm font-bold text-stone-600 transition hover:bg-stone-100">
+        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/70 px-3 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100">
           <ImagePlus size={17} aria-hidden="true" />
           {form.media ? form.media.name : "Attach image or video"}
           <input
@@ -370,7 +374,7 @@ function ReportForm({ form, onChange, onMediaChange, onSubmit }) {
       </Field>
 
       <button
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-emerald-700 px-5 py-2 text-sm font-black text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-700 to-teal-600 px-5 py-2 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:from-emerald-800 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
         type="submit"
       >
         <Send size={16} aria-hidden="true" />
@@ -406,16 +410,16 @@ function PostCard({
   const verificationStatus = getVerificationStatus(report, commentCount);
 
   return (
-    <article className="border-b border-stone-200 px-4 py-4 transition hover:bg-stone-50">
+    <article className="border-b border-emerald-100/80 bg-white/90 px-4 py-4 shadow-sm shadow-emerald-950/0 transition hover:bg-white hover:shadow-md hover:shadow-emerald-950/5">
       {repostedBy && (
-        <div className="mb-2 flex items-center gap-2 pl-12 text-xs font-bold text-stone-500">
+        <div className="mb-2 flex items-center gap-2 pl-12 text-xs font-bold text-emerald-700">
           <Repeat2 size={14} aria-hidden="true" />
           {repostedBy} reposted
         </div>
       )}
       <div className="flex gap-3">
         <button
-          className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-700"
+          className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-sky-100 text-emerald-800 shadow-sm ring-1 ring-white"
           type="button"
           onClick={onOpen}
           aria-label={`Open report by ${name}`}
@@ -425,16 +429,16 @@ function PostCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <button
-              className="font-black text-stone-950 hover:underline"
+              className="font-black text-slate-950 hover:text-emerald-800 hover:underline"
               type="button"
               onClick={onOpen}
             >
               {name}
             </button>
-            <span className="text-stone-400">@mtaani</span>
-            <span className="text-stone-400">.</span>
-            <span className="text-stone-500">{formatReportDate(report.createdAt)}</span>
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-800">
+            <span className="text-slate-400">@mtaani</span>
+            <span className="text-slate-400">.</span>
+            <span className="text-slate-500">{formatReportDate(report.createdAt)}</span>
+            <span className={`rounded-full border px-2 py-0.5 text-xs font-black shadow-sm ${getCategoryClass(report.category)}`}>
               {getCategoryLabel(report.category)}
             </span>
             <span
@@ -444,41 +448,25 @@ function PostCard({
             >
               {verificationStatus}
             </span>
-            {!isOwnPost && (
-              <button
-                className={`rounded-full px-3 py-1 text-xs font-black transition ${
-                  followed
-                    ? "border border-stone-200 bg-white text-stone-700 hover:bg-stone-100"
-                    : "bg-stone-950 text-white hover:bg-stone-800"
-                }`}
-                type="button"
-                onClick={() => onFollow(authorId)}
-              >
-                {followed ? "Following" : "Follow"}
-              </button>
-            )}
           </div>
           <button className="block w-full text-left" type="button" onClick={onOpen}>
-            <h2 className="mt-1 text-base font-black leading-snug text-stone-950">
+            <h2 className="mt-2 text-base font-black leading-snug text-slate-950">
               {report.title}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-stone-700">
+            <p className="mt-1 text-sm leading-6 text-slate-700">
               {report.description}
             </p>
             <MediaPreview media={report.media} />
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-500">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
               <MapPin size={14} aria-hidden="true" />
               <span>{report.ward}</span>
               <span>/</span>
               <span>{report.constituency}</span>
             </div>
-            <p className="mt-2 text-xs font-semibold text-stone-400">
-              Exact location hidden for reporter safety.
-            </p>
           </button>
-          <div className="mt-3 flex items-center justify-between gap-3 text-sm font-bold text-stone-500 sm:max-w-md">
+          <div className="mt-4 flex items-center justify-between gap-2 rounded-full bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500 ring-1 ring-slate-100 sm:max-w-lg">
             <button
-              className="inline-flex items-center gap-2 rounded-full transition hover:text-sky-600"
+              className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 transition hover:bg-sky-50 hover:text-sky-600"
               type="button"
               onClick={onComment}
               aria-label="Comment"
@@ -488,7 +476,7 @@ function PostCard({
             </button>
             <button
               className={`inline-flex items-center gap-2 rounded-full transition ${
-                liked ? "text-rose-600" : "hover:text-rose-600"
+                liked ? "px-2 py-1 text-rose-600" : "px-2 py-1 hover:bg-rose-50 hover:text-rose-600"
               }`}
               type="button"
               onClick={onLike}
@@ -499,7 +487,7 @@ function PostCard({
             </button>
             <button
               className={`inline-flex items-center gap-2 rounded-full transition ${
-                reposted ? "text-emerald-700" : "hover:text-emerald-700"
+                reposted ? "px-2 py-1 text-emerald-700" : "px-2 py-1 hover:bg-emerald-50 hover:text-emerald-700"
               }`}
               type="button"
               onClick={onRepost}
@@ -510,7 +498,7 @@ function PostCard({
             </button>
             <button
               className={`inline-flex items-center gap-2 rounded-full transition ${
-                shareActive ? "text-violet-700" : "hover:text-violet-700"
+                shareActive ? "px-2 py-1 text-violet-700" : "px-2 py-1 hover:bg-violet-50 hover:text-violet-700"
               }`}
               type="button"
               onClick={onShare}
@@ -521,7 +509,7 @@ function PostCard({
             </button>
             {!isOwnPost && (
               <button
-                className="inline-flex items-center gap-2 rounded-full transition hover:text-stone-950"
+                className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 transition hover:bg-slate-100 hover:text-slate-950"
                 type="button"
                 onClick={() => onFollow(authorId)}
               >
@@ -531,7 +519,7 @@ function PostCard({
             )}
             {isOwnPost && (
               <button
-                className="inline-flex items-center gap-2 rounded-full transition hover:text-amber-700"
+                className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 transition hover:bg-amber-50 hover:text-amber-700"
                 type="button"
                 onClick={onArchive}
               >
@@ -593,7 +581,7 @@ function AuthGate({
   const demoAccounts = getDemoAccounts();
 
   return (
-    <main className="min-h-screen bg-white text-stone-950">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dcfce7_0,#f8fafc_38%,#ffffff_78%)] text-slate-950">
       <div className="mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_440px]">
         <section>
           <div className="flex items-center gap-3">
@@ -602,15 +590,12 @@ function AuthGate({
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight">X-Mtaani</h1>
-              <p className="text-sm font-semibold text-stone-500">
-                Demo-only civic reporting auth
-              </p>
             </div>
           </div>
           <p className="mt-6 max-w-xl text-lg font-semibold leading-8 text-stone-700">
-            Sign in as a local anonymous resident to test the feed with seeded
-            Kenyan locations. This is localStorage demo auth only and is not
-            production-secure.
+            X-Mtaani is a hyper-local civic reporting in Kenya. 
+            It gives residents an X/Twitter-style feed for anonymously raising local issues, seeing what is trending nearby, 
+            and tracking community accountability signals for leaders.
           </p>
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900">
             Passwords are stored locally for demo testing only. Future versions
@@ -618,8 +603,8 @@ function AuthGate({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-          <div className="mb-4 grid grid-cols-2 gap-2 rounded-full bg-stone-100 p-1">
+        <section className="rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-xl shadow-emerald-950/10 backdrop-blur">
+          <div className="mb-4 grid grid-cols-2 gap-2 rounded-full bg-emerald-50 p-1 ring-1 ring-emerald-100">
             <button
               className={`rounded-full px-4 py-2 text-sm font-black transition ${
                 !isSignUp ? "bg-white text-emerald-800 shadow-sm" : "text-stone-600"
@@ -719,13 +704,13 @@ function AuthGate({
             )}
 
             {authError && (
-              <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+              <p className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
                 {authError}
               </p>
             )}
 
             <button
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-emerald-700 px-5 py-2 text-sm font-black text-white transition hover:bg-emerald-800"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-gradient-to-r from-emerald-700 to-teal-600 px-5 py-2 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:from-emerald-800 hover:to-teal-700"
               type="submit"
             >
               {isSignUp ? "Create demo account" : "Sign in"}
@@ -738,7 +723,7 @@ function AuthGate({
               <div className="mt-2 grid gap-2">
                 {demoAccounts.map((account) => (
                   <button
-                    className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-left transition hover:bg-stone-100"
+                    className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 text-left transition hover:border-emerald-200 hover:bg-emerald-100/70"
                     key={account.email}
                     type="button"
                     onClick={() => onDemoFill(account)}
@@ -770,12 +755,12 @@ function AuthGate({
 
 function TrustSafetyCard() {
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-4">
+    <section className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/60 p-4 shadow-sm shadow-emerald-950/5">
       <div className="mb-3 flex items-center gap-2">
         <ShieldCheck className="text-emerald-700" size={18} />
-        <h2 className="font-black">Trust & Safety</h2>
+        <h2 className="font-black text-slate-950">Trust & Safety</h2>
       </div>
-      <div className="grid gap-2 text-xs font-semibold leading-5 text-stone-600">
+      <div className="grid gap-2 text-xs font-semibold leading-5 text-slate-600">
         <p>Reports are anonymous by default.</p>
         <p>Exact location is hidden publicly for reporter safety.</p>
         <p>Reports are labeled unverified until confirmed by community signals.</p>
@@ -1079,6 +1064,20 @@ export default function XMtaaniApp() {
     }
   };
 
+  const resolveOwnPost = (report) => {
+    if (currentUser?.id !== getAuthorId(report) || report.issueStatus === "resolved") {
+      return;
+    }
+
+    const result = markReportResolved({
+      reportId: report.id,
+      authorId: currentUser.id,
+    });
+
+    setReports(result.reports);
+    setComments(result.comments);
+  };
+
   const toggleUserRepost = (reportId) => {
     setReposts(
       toggleRepost({
@@ -1164,20 +1163,20 @@ export default function XMtaaniApp() {
 
   const renderFeed = () => (
     <>
-      <div className="border-b border-stone-200 px-4 py-3">
+      <div className="border-b border-emerald-100 bg-gradient-to-r from-white to-emerald-50/50 px-4 py-3">
         <button
-          className="flex w-full items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-left transition hover:bg-stone-100"
+          className="flex w-full items-center gap-3 rounded-2xl border border-emerald-100 bg-white/90 px-4 py-3 text-left shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/60 hover:shadow-md"
           type="button"
           onClick={() => setPostOpen(true)}
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800">
             <Users size={18} aria-hidden="true" />
           </div>
-          <span className="text-sm font-semibold text-stone-500">
+          <span className="text-sm font-semibold text-slate-500">
             Report a local issue anonymously...
           </span>
         </button>
-        <p className="mt-3 text-xs font-bold uppercase tracking-wide text-stone-500">
+        <p className="mt-3 text-xs font-bold uppercase tracking-wide text-emerald-700">
           Showing reports near {currentUser.ward}, {currentUser.constituency}
         </p>
       </div>
@@ -1186,11 +1185,11 @@ export default function XMtaaniApp() {
         {locationFeedGroups.map((section) =>
           section.items.length > 0 ? (
             <section key={section.key}>
-              <div className="border-b border-stone-200 bg-stone-50 px-4 py-3">
-                <h2 className="text-sm font-black text-stone-950">
+              <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-sky-50 px-4 py-3">
+                <h2 className="text-sm font-black text-slate-950">
                   {section.label}
                 </h2>
-                <p className="text-xs font-semibold text-stone-500">
+                <p className="text-xs font-semibold text-slate-500">
                   {section.description}
                 </p>
               </div>
@@ -1202,9 +1201,12 @@ export default function XMtaaniApp() {
         )}
 
         {feedItems.length === 0 && (
-          <div className="px-4 py-12 text-center">
-            <p className="font-black text-stone-950">No reports found</p>
-            <p className="mt-1 text-sm text-stone-500">
+          <div className="px-4 py-14 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+              <Sparkles size={20} aria-hidden="true" />
+            </div>
+            <p className="font-black text-slate-950">No reports found</p>
+            <p className="mt-1 text-sm font-medium text-slate-500">
               Try clearing a filter or post the first report for this area.
             </p>
           </div>
@@ -1217,6 +1219,9 @@ export default function XMtaaniApp() {
     if (!selectedReport) {
       return renderFeed();
     }
+
+    const isOriginalAuthor = currentUser?.id === getAuthorId(selectedReport);
+    const isResolved = selectedReport.issueStatus === "resolved";
 
     return (
       <div>
@@ -1231,6 +1236,42 @@ export default function XMtaaniApp() {
           </button>
         </div>
         {renderPost(selectedReport)}
+        <section className="border-b border-emerald-100 bg-emerald-50/40 px-4 py-4">
+          <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-black text-slate-950">Issue resolution</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                  Only the original reporter can mark their issue as resolved. Cluster
+                  resolution is based on multiple reporters confirming their own issues
+                  were fixed.
+                </p>
+                {isResolved && selectedReport.resolvedAt && (
+                  <p className="mt-2 text-xs font-bold text-emerald-700">
+                    Resolved {formatReportDate(selectedReport.resolvedAt)}
+                  </p>
+                )}
+              </div>
+              {isResolved ? (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+                  Resolved by original reporter
+                </span>
+              ) : isOriginalAuthor ? (
+                <button
+                  className="inline-flex min-h-10 items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800"
+                  type="button"
+                  onClick={() => resolveOwnPost(selectedReport)}
+                >
+                  Mark as Resolved
+                </button>
+              ) : (
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+                  Reporter confirmation pending
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
         <form className="border-b border-stone-200 px-4 py-4" onSubmit={submitComment}>
           <label className="sr-only" htmlFor="comment">
             Add comment
@@ -1302,12 +1343,17 @@ export default function XMtaaniApp() {
                 {cluster.constituency} / latest {formatReportDate(cluster.latestReportAt)}
               </p>
             </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-800">
-              #{index + 1}
-            </span>
+            <div className="flex flex-col items-end gap-2">
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-800">
+                #{index + 1}
+              </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                {cluster.resolutionLabel}
+              </span>
+            </div>
           </div>
           <p className="mt-3 text-sm font-semibold text-stone-700">
-            {cluster.count} community reports in this cluster
+            {cluster.count} community reports / {cluster.resolvedCount} resolved by original reporters
           </p>
         </article>
       ))}
@@ -1321,9 +1367,10 @@ export default function XMtaaniApp() {
           leader.area.includes(report.ward) ||
           leader.area.includes(report.constituency),
       )
-      .map((report, index) => ({
+      .map((report) => ({
         ...report,
-        accountabilityStatus: getMockIssueStatus(report, index),
+        accountabilityStatus:
+          report.issueStatus === "resolved" ? "resolved" : report.issueStatus || "unresolved",
       }));
 
   const getLeaderRating = (leader) => {
@@ -1431,14 +1478,14 @@ export default function XMtaaniApp() {
 
   const renderDashboard = () => (
     <div>
-      <div className="border-b border-stone-200 px-4 py-3">
+      <div className="border-b border-emerald-100 bg-white/70 px-4 py-3">
         <div className="grid grid-cols-4 gap-2">
           {dashboardStats.map((item) => (
             <button
-              className={`rounded-xl px-2 py-3 text-center transition ${
+              className={`rounded-xl px-2 py-3 text-center shadow-sm transition ${
                 dashboardSection === item.label
-                  ? "bg-emerald-50 text-emerald-800"
-                  : "bg-stone-50 text-stone-700 hover:bg-stone-100"
+                  ? "bg-gradient-to-br from-emerald-700 to-teal-600 text-white shadow-emerald-200"
+                  : "bg-white text-slate-700 ring-1 ring-emerald-100 hover:bg-emerald-50"
               }`}
               key={item.label}
               type="button"
@@ -1450,16 +1497,16 @@ export default function XMtaaniApp() {
           ))}
         </div>
       </div>
-      <div className="border-b border-stone-200 px-4 py-4">
+      <div className="border-b border-emerald-100 px-4 py-4">
         <TrustSafetyCard />
       </div>
       {dashboardSection === "Reports" && renderFeed()}
       {dashboardSection === "Wards" && (
         <div className="grid gap-0">
           {filterOptions.wards.map((ward) => (
-            <article className="border-b border-stone-200 px-4 py-4" key={ward}>
-              <h2 className="font-black text-stone-950">{ward}</h2>
-              <p className="text-sm text-stone-600">
+            <article className="border-b border-emerald-100 bg-white/80 px-4 py-4" key={ward}>
+              <h2 className="font-black text-slate-950">{ward}</h2>
+              <p className="text-sm font-medium text-slate-600">
                 {publicReports.filter((report) => report.ward === ward).length} reports
               </p>
             </article>
@@ -1469,11 +1516,11 @@ export default function XMtaaniApp() {
       {dashboardSection === "Clusters" && renderExplore()}
       {dashboardSection === "X Report" && (
         <section className="px-4 py-4">
-          <div className="rounded-2xl border border-stone-200 bg-white p-4">
-            <h2 className="font-black text-stone-950">Generated X report</h2>
-            <p className="mt-3 text-sm leading-6 text-stone-700">{statusPost}</p>
+          <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-md shadow-slate-950/5">
+            <h2 className="font-black text-slate-950">Generated X report</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-700">{statusPost}</p>
             <button
-              className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-black text-stone-900 transition hover:bg-stone-50"
+              className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-black text-slate-900 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-800"
               type="button"
               onClick={copyPost}
             >
@@ -1527,16 +1574,16 @@ export default function XMtaaniApp() {
   }
 
   return (
-    <main className="min-h-screen bg-white pb-16 text-stone-950 lg:pb-0">
-      <div className="mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 lg:grid-cols-[88px_minmax(0,620px)_340px] xl:grid-cols-[250px_minmax(0,640px)_360px]">
-        <aside className="sticky top-0 z-20 hidden h-screen border-r border-stone-200 bg-white px-3 py-4 lg:flex lg:flex-col">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dcfce7_0,#f8fafc_36%,#eef2ff_100%)] pb-16 text-slate-950 lg:pb-0">
+      <div className="mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 bg-white/75 shadow-2xl shadow-slate-950/5 backdrop-blur lg:grid-cols-[88px_minmax(0,620px)_340px] lg:gap-x-3 xl:grid-cols-[250px_minmax(0,640px)_360px]">
+        <aside className="sticky top-0 z-20 hidden h-screen border-r border-emerald-100 bg-white/85 px-3 py-4 backdrop-blur lg:flex lg:flex-col">
           <div className="mb-5 flex items-center gap-2 px-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-700 text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-700 to-teal-500 text-white shadow-lg shadow-emerald-200">
               <Megaphone size={21} aria-hidden="true" />
             </div>
             <div className="hidden xl:block">
-              <p className="text-lg font-black tracking-tight">X-Mtaani</p>
-              <p className="text-xs font-semibold text-stone-500">civic feed</p>
+              <p className="text-lg font-black tracking-tight text-slate-950">X-Mtaani</p>
+              <p className="text-xs font-semibold text-emerald-700">civic feed</p>
             </div>
           </div>
 
@@ -1569,8 +1616,8 @@ export default function XMtaaniApp() {
             <button
               className={`flex w-full items-center justify-between rounded-full px-3 py-2 text-left text-sm font-bold transition ${
                 activeView === "dashboard"
-                  ? "bg-emerald-50 text-emerald-800"
-                  : "text-stone-800 hover:bg-stone-100"
+                  ? "bg-gradient-to-r from-emerald-700 to-teal-600 text-white shadow-md shadow-emerald-200"
+                  : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-800"
               }`}
               type="button"
               onClick={() => {
@@ -1590,10 +1637,10 @@ export default function XMtaaniApp() {
             </button>
 
             {dashboardOpen && (
-              <div className="ml-0 grid gap-1 rounded-2xl bg-stone-50 p-2 xl:ml-9">
+              <div className="ml-0 grid gap-1 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-2 shadow-inner xl:ml-9">
                 {dashboardStats.map((item) => (
                   <button
-                    className="flex items-center justify-between gap-2 rounded-xl px-2 py-1 text-xs transition hover:bg-white"
+                    className="flex items-center justify-between gap-2 rounded-xl px-2 py-1 text-xs transition hover:bg-white hover:shadow-sm"
                     key={item.label}
                     type="button"
                     onClick={() => {
@@ -1604,7 +1651,7 @@ export default function XMtaaniApp() {
                     <span className="hidden font-semibold text-stone-500 xl:inline">
                       {item.label}
                     </span>
-                    <span className="font-black text-stone-900">{item.value}</span>
+                    <span className="font-black text-emerald-900">{item.value}</span>
                   </button>
                 ))}
               </div>
@@ -1612,7 +1659,7 @@ export default function XMtaaniApp() {
           </nav>
 
           <button
-            className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-700 to-teal-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:from-emerald-800 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
             type="button"
             onClick={() => setPostOpen(true)}
           >
@@ -1620,7 +1667,7 @@ export default function XMtaaniApp() {
             <span className="hidden xl:inline">Post</span>
           </button>
 
-          <div className="mt-auto hidden rounded-2xl bg-stone-50 p-3 xl:block">
+          <div className="mt-auto hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-3 shadow-sm xl:block">
             <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
               Current anonymous user
             </p>
@@ -1643,20 +1690,20 @@ export default function XMtaaniApp() {
           </div>
         </aside>
 
-        <section className="min-w-0 border-r border-stone-200">
-          <header className="sticky top-0 z-10 border-b border-stone-200 bg-white/95 px-4 py-3 backdrop-blur">
+        <section className="min-w-0 border-r border-emerald-100 bg-white/80">
+          <header className="sticky top-0 z-10 border-b border-emerald-100 bg-white/90 px-4 py-3 shadow-sm shadow-slate-950/5 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h1 className="text-xl font-black tracking-tight">
+                <h1 className="text-xl font-black tracking-tight text-slate-950">
                   {selectedReportId ? "Post" : viewCopy[activeView][0]}
                 </h1>
-                <p className="text-sm text-stone-500">
+                <p className="text-sm font-medium text-slate-500">
                   {selectedReportId ? "Conversation thread" : viewCopy[activeView][1]}
                 </p>
               </div>
               <div className="flex items-center gap-2 lg:hidden">
                 <button
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-700 to-teal-600 px-4 py-2 text-sm font-black text-white shadow-md shadow-emerald-200"
                   type="button"
                   onClick={() => setPostOpen(true)}
                 >
@@ -1664,7 +1711,7 @@ export default function XMtaaniApp() {
                   Post
                 </button>
                 <button
-                  className="inline-flex items-center justify-center rounded-full border border-stone-200 px-3 py-2 text-sm font-black text-stone-700"
+                  className="inline-flex items-center justify-center rounded-full border border-emerald-100 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm"
                   type="button"
                   onClick={handleSignOut}
                 >
@@ -1724,39 +1771,42 @@ export default function XMtaaniApp() {
           {renderCenter()}
         </section>
 
-        <aside className="hidden bg-white px-4 py-4 lg:block">
+        <aside className="hidden bg-slate-50/70 px-4 py-4 lg:block">
           <div className="sticky top-4 grid gap-4">
-            <section className="rounded-2xl border border-stone-200 bg-white p-4">
+            <section className="rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-md shadow-slate-950/5">
               <div className="mb-3 flex items-center gap-2">
                 <BarChart3 className="text-emerald-700" size={18} />
-                <h2 className="font-black">Priority Dashboard</h2>
+                <h2 className="font-black text-slate-950">Priority Dashboard</h2>
               </div>
 
               {topCluster ? (
                 <div className="grid gap-3">
-                  <div className="rounded-2xl bg-stone-50 p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
+                  <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-sky-50 p-3 ring-1 ring-emerald-100">
+                    <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
                       Top issue cluster
                     </p>
-                    <h3 className="mt-1 text-lg font-black text-stone-950">
+                    <h3 className="mt-1 text-lg font-black text-slate-950">
                       {getCategoryLabel(topCluster.category)}
                     </h3>
-                    <p className="text-sm text-stone-600">
+                    <p className="text-sm font-medium text-slate-600">
                       {topCluster.ward}, {topCluster.constituency}
                     </p>
                     <p className="mt-2 text-3xl font-black text-emerald-700">
                       {topCluster.count}
                     </p>
-                    <p className="text-xs font-semibold text-stone-500">
-                      community reports
+                    <p className="text-xs font-semibold text-slate-500">
+                      community reports / {topCluster.unresolvedCount} still open
+                    </p>
+                    <p className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-xs font-black text-slate-700 ring-1 ring-emerald-100">
+                      {topCluster.resolutionLabel}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-stone-200 bg-white p-3 text-sm leading-6 text-stone-700">
+                  <div className="rounded-2xl border border-emerald-100 bg-white p-3 text-sm leading-6 text-slate-700 shadow-sm">
                     {statusPost}
                   </div>
                   <button
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-black text-stone-900 transition hover:bg-stone-50"
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-black text-slate-900 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-800"
                     type="button"
                     onClick={copyPost}
                   >
@@ -1771,10 +1821,10 @@ export default function XMtaaniApp() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-stone-200 bg-white p-4">
+            <section className="rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-md shadow-slate-950/5">
               <div className="mb-3 flex items-center gap-2">
                 <UserRoundCheck className="text-emerald-700" size={18} />
-                <h2 className="font-black">Leader Scoreboard</h2>
+                <h2 className="font-black text-slate-950">Leader Scoreboard</h2>
               </div>
 
               <div className="grid gap-3">
@@ -1783,25 +1833,25 @@ export default function XMtaaniApp() {
 
                   return (
                   <button
-                    className="rounded-2xl border border-stone-100 bg-stone-50 p-3 text-left transition hover:bg-stone-100"
+                    className="rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 to-white p-3 text-left shadow-sm transition hover:border-emerald-100 hover:bg-emerald-50/40 hover:shadow-md"
                     key={leader.id}
                     type="button"
                     onClick={() => setSelectedLeader(leader)}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-sm font-black text-stone-950">
+                        <h3 className="text-sm font-black text-slate-950">
                           {leader.name}
                         </h3>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs font-medium text-slate-500">
                           {leader.role} / {leader.area}
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs font-black text-emerald-800">
+                      <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-black text-emerald-800 ring-1 ring-emerald-100">
                         {rating.score ?? "N/A"}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs font-semibold text-stone-600">
+                    <p className="mt-2 text-xs font-semibold text-slate-600">
                       {getRatingLabel(rating.score)}
                     </p>
                   </button>
@@ -1810,15 +1860,15 @@ export default function XMtaaniApp() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-stone-200 bg-white p-4">
+            <section className="rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-md shadow-slate-950/5">
               <div className="mb-3 flex items-center gap-2">
                 <Sparkles className="text-emerald-700" size={18} />
-                <h2 className="font-black">What's happening in Mtaani</h2>
+                <h2 className="font-black text-slate-950">What's happening in Mtaani</h2>
               </div>
               <div className="grid gap-2">
                 {topCategories.map((item) => (
                   <div
-                    className="flex items-center justify-between rounded-xl bg-stone-50 px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm shadow-sm"
                     key={item.category}
                   >
                     <span className="font-bold text-stone-700">
@@ -1835,7 +1885,7 @@ export default function XMtaaniApp() {
         </aside>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-stone-200 bg-white px-2 py-2 lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-emerald-100 bg-white/95 px-2 py-2 shadow-2xl shadow-slate-950/10 backdrop-blur lg:hidden">
         {[
           [Home, "Home", "home"],
           [Compass, "Explore", "explore"],
@@ -1845,7 +1895,7 @@ export default function XMtaaniApp() {
         ].map(([Icon, label, view]) => (
           <button
             className={`flex flex-col items-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold ${
-              activeView === view ? "text-emerald-800" : "text-stone-700"
+              activeView === view ? "bg-emerald-50 text-emerald-800" : "text-slate-600"
             }`}
             type="button"
             key={label}
@@ -1913,8 +1963,8 @@ export default function XMtaaniApp() {
 
                   <p className="mt-3 text-xs font-semibold leading-5 text-stone-500">
                     This is a community accountability estimate, not an official
-                    government score. It is computed from mock issue status data in
-                    this local MVP.
+                    government score. It is computed from related public reports and
+                    original-reporter resolution confirmations in this local MVP.
                   </p>
 
                   <div className="mt-4 grid gap-3">
