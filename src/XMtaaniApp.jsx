@@ -195,6 +195,49 @@ function getMockIssueStatus(report, index) {
   return "unresolved";
 }
 
+function getLocationScope(report, user) {
+  if (!user) {
+    return "wider";
+  }
+
+  if (report.ward === user.ward) {
+    return "ward";
+  }
+
+  if (report.constituency === user.constituency) {
+    return "constituency";
+  }
+
+  if (report.county === user.county) {
+    return "county";
+  }
+
+  return "wider";
+}
+
+const locationFeedSections = [
+  {
+    key: "ward",
+    label: "Your Ward",
+    description: "Closest reports from your ward",
+  },
+  {
+    key: "constituency",
+    label: "Your Constituency",
+    description: "Nearby reports from the rest of your constituency",
+  },
+  {
+    key: "county",
+    label: "Your County",
+    description: "County-wide civic reports",
+  },
+  {
+    key: "wider",
+    label: "Wider Civic Issues",
+    description: "Other areas and broader civic priorities",
+  },
+];
+
 function SidebarItem({ icon: Icon, label, active = false, onClick }) {
   return (
     <button
@@ -820,6 +863,7 @@ export default function XMtaaniApp() {
       id: `post-${report.id}`,
       type: "post",
       report,
+      scope: getLocationScope(report, currentUser),
       createdAt: report.createdAt,
     }));
     const repostItems = reposts
@@ -837,6 +881,7 @@ export default function XMtaaniApp() {
           type: "repost",
           report,
           repost,
+          scope: getLocationScope(report, currentUser),
           createdAt: repost.createdAt,
         };
       })
@@ -845,7 +890,16 @@ export default function XMtaaniApp() {
     return [...originals, ...repostItems].sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     );
-  }, [filteredReports, publicReports, reposts]);
+  }, [currentUser, filteredReports, publicReports, reposts]);
+
+  const locationFeedGroups = useMemo(
+    () =>
+      locationFeedSections.map((section) => ({
+        ...section,
+        items: feedItems.filter((item) => item.scope === section.key),
+      })),
+    [feedItems],
+  );
 
   const navigate = (view) => {
     setActiveView(view);
@@ -1123,11 +1177,28 @@ export default function XMtaaniApp() {
             Report a local issue anonymously...
           </span>
         </button>
+        <p className="mt-3 text-xs font-bold uppercase tracking-wide text-stone-500">
+          Showing reports near {currentUser.ward}, {currentUser.constituency}
+        </p>
       </div>
 
       <div>
-        {feedItems.map((item) =>
-          renderPost(item.report, item.repost ? item.repost.username : ""),
+        {locationFeedGroups.map((section) =>
+          section.items.length > 0 ? (
+            <section key={section.key}>
+              <div className="border-b border-stone-200 bg-stone-50 px-4 py-3">
+                <h2 className="text-sm font-black text-stone-950">
+                  {section.label}
+                </h2>
+                <p className="text-xs font-semibold text-stone-500">
+                  {section.description}
+                </p>
+              </div>
+              {section.items.map((item) =>
+                renderPost(item.report, item.repost ? item.repost.username : ""),
+              )}
+            </section>
+          ) : null,
         )}
 
         {feedItems.length === 0 && (
