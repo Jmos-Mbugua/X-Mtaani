@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
+  Archive,
   BarChart3,
   Bell,
   ChevronDown,
@@ -13,7 +14,10 @@ import {
   MapPin,
   Megaphone,
   MessageCircle,
+  Repeat2,
   Send,
+  Share2,
+  ShieldCheck,
   Sparkles,
   Trophy,
   UserPlus,
@@ -25,14 +29,19 @@ import { categories, sampleLeaders } from "./data/sampleData";
 import {
   addComment,
   addReport,
+  archiveReport,
   filterReports,
   generateStatusPost,
   getCategoryLabel,
   getCommentCount,
   getComments,
   getFilterOptions,
+  getPublicReports,
   getPriorityClusters,
+  getRepostCount,
+  getReposts,
   getReports,
+  toggleRepost,
 } from "./services/issueService";
 import {
   generateAnonymousName,
@@ -95,6 +104,70 @@ function formatReportDate(value) {
 
 function getAuthorName(report) {
   return report.authorName || "Anonymous Resident";
+}
+
+function getAuthorId(report) {
+  return report.authorId || getAuthorName(report);
+}
+
+function getVerificationStatus(report, commentCount = 0) {
+  if (report.verificationStatus === "Resolved") {
+    return "Resolved";
+  }
+
+  if (report.verificationStatus === "Community Confirmed" || commentCount >= 2) {
+    return "Community Confirmed";
+  }
+
+  return "Unverified";
+}
+
+function getVerificationClass(status) {
+  if (status === "Resolved") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+
+  if (status === "Community Confirmed") {
+    return "border-sky-200 bg-sky-50 text-sky-800";
+  }
+
+  return "border-stone-200 bg-stone-50 text-stone-600";
+}
+
+function getRatingLabel(score) {
+  if (score === null) {
+    return "No verified data yet";
+  }
+
+  if (score >= 80) {
+    return "Strong response";
+  }
+
+  if (score >= 60) {
+    return "Moderate response";
+  }
+
+  if (score >= 40) {
+    return "Needs improvement";
+  }
+
+  return "Poor response";
+}
+
+function getMockIssueStatus(report, index) {
+  if (report.verificationStatus === "Resolved") {
+    return "resolved";
+  }
+
+  if (index % 5 === 0) {
+    return "resolved";
+  }
+
+  if (index % 3 === 0) {
+    return "pending verification";
+  }
+
+  return "unresolved";
 }
 
 function SidebarItem({ icon: Icon, label, active = false, onClick }) {
@@ -245,17 +318,33 @@ function PostCard({
   followed,
   liked,
   likeCount,
+  reposted,
+  repostCount,
+  repostedBy,
+  shareActive,
   currentUsername,
+  currentUserId,
+  onArchive,
   onComment,
   onFollow,
   onLike,
   onOpen,
+  onRepost,
+  onShare,
 }) {
   const name = getAuthorName(report);
-  const isOwnPost = currentUsername === name;
+  const authorId = getAuthorId(report);
+  const isOwnPost = currentUserId === authorId || currentUsername === name;
+  const verificationStatus = getVerificationStatus(report, commentCount);
 
   return (
     <article className="border-b border-stone-200 px-4 py-4 transition hover:bg-stone-50">
+      {repostedBy && (
+        <div className="mb-2 flex items-center gap-2 pl-12 text-xs font-bold text-stone-500">
+          <Repeat2 size={14} aria-hidden="true" />
+          {repostedBy} reposted
+        </div>
+      )}
       <div className="flex gap-3">
         <button
           className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-700"
@@ -280,6 +369,13 @@ function PostCard({
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-800">
               {getCategoryLabel(report.category)}
             </span>
+            <span
+              className={`rounded-full border px-2 py-0.5 text-xs font-black ${getVerificationClass(
+                verificationStatus,
+              )}`}
+            >
+              {verificationStatus}
+            </span>
             {!isOwnPost && (
               <button
                 className={`rounded-full px-3 py-1 text-xs font-black transition ${
@@ -288,7 +384,7 @@ function PostCard({
                     : "bg-stone-950 text-white hover:bg-stone-800"
                 }`}
                 type="button"
-                onClick={() => onFollow(name)}
+                onClick={() => onFollow(authorId)}
               >
                 {followed ? "Following" : "Follow"}
               </button>
@@ -307,15 +403,17 @@ function PostCard({
               <span>{report.ward}</span>
               <span>/</span>
               <span>{report.constituency}</span>
-              <span>/</span>
-              <span>{report.location}</span>
             </div>
+            <p className="mt-2 text-xs font-semibold text-stone-400">
+              Exact location hidden for reporter safety.
+            </p>
           </button>
-          <div className="mt-3 flex items-center gap-6 text-sm font-bold text-stone-500">
+          <div className="mt-3 flex items-center justify-between gap-3 text-sm font-bold text-stone-500 sm:max-w-md">
             <button
-              className="inline-flex items-center gap-2 rounded-full transition hover:text-emerald-700"
+              className="inline-flex items-center gap-2 rounded-full transition hover:text-sky-600"
               type="button"
               onClick={onComment}
+              aria-label="Comment"
             >
               <MessageCircle size={17} aria-hidden="true" />
               {commentCount}
@@ -326,18 +424,51 @@ function PostCard({
               }`}
               type="button"
               onClick={onLike}
+              aria-label={liked ? "Unlike" : "Like"}
             >
               <Heart size={17} fill={liked ? "currentColor" : "none"} aria-hidden="true" />
               {likeCount}
+            </button>
+            <button
+              className={`inline-flex items-center gap-2 rounded-full transition ${
+                reposted ? "text-emerald-700" : "hover:text-emerald-700"
+              }`}
+              type="button"
+              onClick={onRepost}
+              aria-label={reposted ? "Undo repost" : "Repost"}
+            >
+              <Repeat2 size={17} aria-hidden="true" />
+              {repostCount}
+            </button>
+            <button
+              className={`inline-flex items-center gap-2 rounded-full transition ${
+                shareActive ? "text-violet-700" : "hover:text-violet-700"
+              }`}
+              type="button"
+              onClick={onShare}
+              aria-label="Share"
+            >
+              <Share2 size={17} aria-hidden="true" />
+              {shareActive ? "Copied" : "Share"}
             </button>
             {!isOwnPost && (
               <button
                 className="inline-flex items-center gap-2 rounded-full transition hover:text-stone-950"
                 type="button"
-                onClick={() => onFollow(name)}
+                onClick={() => onFollow(authorId)}
               >
                 <UserPlus size={17} aria-hidden="true" />
                 {followed ? "Following" : "Follow"}
+              </button>
+            )}
+            {isOwnPost && (
+              <button
+                className="inline-flex items-center gap-2 rounded-full transition hover:text-amber-700"
+                type="button"
+                onClick={onArchive}
+              >
+                <Archive size={17} aria-hidden="true" />
+                Archive
               </button>
             )}
           </div>
@@ -379,10 +510,30 @@ function IdentityModal({ generatedName, identityName, onIdentityNameChange, onSu
   );
 }
 
+function TrustSafetyCard() {
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-white p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <ShieldCheck className="text-emerald-700" size={18} />
+        <h2 className="font-black">Trust & Safety</h2>
+      </div>
+      <div className="grid gap-2 text-xs font-semibold leading-5 text-stone-600">
+        <p>Reports are anonymous by default.</p>
+        <p>Exact location is hidden publicly for reporter safety.</p>
+        <p>Reports are labeled unverified until confirmed by community signals.</p>
+        <p>Users can archive their own posts while preserving audit history.</p>
+        <p>Misuse, harassment, ethnic hate, incitement, or election-period manipulation is not allowed.</p>
+        <p>Future versions should add moderation, evidence review, rate limits, and trusted community verifiers.</p>
+      </div>
+    </section>
+  );
+}
+
 export default function XMtaaniApp() {
   const storedUser = getCurrentUser();
   const [reports, setReports] = useState(() => getReports());
   const [comments, setComments] = useState(() => getComments());
+  const [reposts, setReposts] = useState(() => getReposts());
   const [currentUser, setCurrentUser] = useState(() => storedUser);
   const [generatedName] = useState(() => generateAnonymousName());
   const [identityName, setIdentityName] = useState("");
@@ -401,21 +552,24 @@ export default function XMtaaniApp() {
   const [form, setForm] = useState(initialForm);
   const [commentText, setCommentText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [sharedPostId, setSharedPostId] = useState("");
   const [postOpen, setPostOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(true);
   const [activeView, setActiveView] = useState("home");
   const [dashboardSection, setDashboardSection] = useState("Reports");
   const [selectedReportId, setSelectedReportId] = useState(null);
+  const [selectedLeader, setSelectedLeader] = useState(null);
 
-  const filterOptions = useMemo(() => getFilterOptions(reports), [reports]);
+  const publicReports = useMemo(() => getPublicReports(reports), [reports]);
+  const filterOptions = useMemo(() => getFilterOptions(publicReports), [publicReports]);
   const filteredReports = useMemo(
-    () => filterReports(reports, filters),
-    [reports, filters],
+    () => filterReports(publicReports, filters),
+    [publicReports, filters],
   );
-  const clusters = useMemo(() => getPriorityClusters(reports), [reports]);
+  const clusters = useMemo(() => getPriorityClusters(publicReports), [publicReports]);
   const topCluster = clusters[0];
   const statusPost = useMemo(() => generateStatusPost(topCluster), [topCluster]);
-  const selectedReport = reports.find((report) => report.id === selectedReportId);
+  const selectedReport = publicReports.find((report) => report.id === selectedReportId);
   const selectedComments = comments.filter(
     (comment) => comment.reportId === selectedReportId,
   );
@@ -438,11 +592,43 @@ export default function XMtaaniApp() {
   );
 
   const dashboardStats = [
-    { label: "Reports", value: reports.length },
+    { label: "Reports", value: publicReports.length },
     { label: "Wards", value: filterOptions.wards.length },
     { label: "Clusters", value: clusters.length },
     { label: "X Report", value: topCluster ? "Ready" : "Empty" },
   ];
+
+  const feedItems = useMemo(() => {
+    const originals = filteredReports.map((report) => ({
+      id: `post-${report.id}`,
+      type: "post",
+      report,
+      createdAt: report.createdAt,
+    }));
+    const repostItems = reposts
+      .map((repost) => {
+        const report = publicReports.find(
+          (item) => item.id === repost.originalPostId,
+        );
+
+        if (!report) {
+          return null;
+        }
+
+        return {
+          id: repost.id,
+          type: "repost",
+          report,
+          repost,
+          createdAt: repost.createdAt,
+        };
+      })
+      .filter(Boolean);
+
+    return [...originals, ...repostItems].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    );
+  }, [filteredReports, publicReports, reposts]);
 
   const navigate = (view) => {
     setActiveView(view);
@@ -504,6 +690,7 @@ export default function XMtaaniApp() {
       location: form.location.trim(),
       description: form.description.trim(),
       media: form.media,
+      authorId: currentUser?.id || "anonymous-resident",
       authorName: currentUser?.username || "Anonymous Resident",
     };
 
@@ -534,8 +721,50 @@ export default function XMtaaniApp() {
     setLikeCounts(getLikeCounts());
   };
 
-  const toggleFollow = (username) => {
-    setFollowedUsers(toggleFollowedUser(currentUser?.id, username));
+  const toggleFollow = (authorId) => {
+    setFollowedUsers(toggleFollowedUser(currentUser?.id, authorId));
+  };
+
+  const archiveOwnPost = (report) => {
+    if (
+      currentUser?.id !== getAuthorId(report) &&
+      currentUser?.username !== getAuthorName(report)
+    ) {
+      return;
+    }
+
+    setReports(archiveReport(report.id));
+    if (selectedReportId === report.id) {
+      setSelectedReportId(null);
+    }
+  };
+
+  const toggleUserRepost = (reportId) => {
+    setReposts(
+      toggleRepost({
+        reportId,
+        userId: currentUser?.id,
+        username: currentUser?.username,
+      }),
+    );
+  };
+
+  const shareReport = async (report) => {
+    const url = `${window.location.origin}${window.location.pathname}#post-${report.id}`;
+    const text = `${report.title} - ${report.ward}, ${report.constituency}. ${url}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: report.title, text, url });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+
+      setSharedPostId(report.id);
+      window.setTimeout(() => setSharedPostId(""), 1800);
+    } catch {
+      setSharedPostId("");
+    }
   };
 
   const submitComment = (event) => {
@@ -566,19 +795,30 @@ export default function XMtaaniApp() {
     }
   };
 
-  const renderPost = (report) => (
+  const renderPost = (report, repostedBy = "") => (
     <PostCard
-      key={report.id}
+      key={repostedBy ? `${report.id}-${repostedBy}` : report.id}
       report={report}
       commentCount={getCommentCount(comments, report.id)}
-      followed={followedUsers.includes(getAuthorName(report))}
+      followed={followedUsers.includes(getAuthorId(report))}
       liked={likedPostIds.includes(report.id)}
       likeCount={likeCounts[report.id] || 0}
+      reposted={reposts.some(
+        (repost) =>
+          repost.originalPostId === report.id && repost.userId === currentUser?.id,
+      )}
+      repostCount={getRepostCount(reposts, report.id)}
+      repostedBy={repostedBy}
+      shareActive={sharedPostId === report.id}
       currentUsername={currentUser?.username}
+      currentUserId={currentUser?.id}
+      onArchive={() => archiveOwnPost(report)}
       onComment={() => openReport(report.id)}
       onFollow={toggleFollow}
       onLike={() => toggleLike(report.id)}
       onOpen={() => openReport(report.id)}
+      onRepost={() => toggleUserRepost(report.id)}
+      onShare={() => shareReport(report)}
     />
   );
 
@@ -600,9 +840,11 @@ export default function XMtaaniApp() {
       </div>
 
       <div>
-        {filteredReports.map(renderPost)}
+        {feedItems.map((item) =>
+          renderPost(item.report, item.repost ? item.repost.username : ""),
+        )}
 
-        {filteredReports.length === 0 && (
+        {feedItems.length === 0 && (
           <div className="px-4 py-12 text-center">
             <p className="font-black text-stone-950">No reports found</p>
             <p className="mt-1 text-sm text-stone-500">
@@ -715,26 +957,68 @@ export default function XMtaaniApp() {
     </div>
   );
 
+  const getLeaderIssues = (leader) =>
+    publicReports
+      .filter(
+        (report) =>
+          leader.area.includes(report.ward) ||
+          leader.area.includes(report.constituency),
+      )
+      .map((report, index) => ({
+        ...report,
+        accountabilityStatus: getMockIssueStatus(report, index),
+      }));
+
+  const getLeaderRating = (leader) => {
+    const issues = getLeaderIssues(leader);
+    const resolved = issues.filter(
+      (issue) => issue.accountabilityStatus === "resolved",
+    ).length;
+    const unresolved = issues.filter(
+      (issue) => issue.accountabilityStatus !== "resolved",
+    ).length;
+    const total = resolved + unresolved;
+
+    return {
+      issues,
+      resolved,
+      unresolved,
+      score: total === 0 ? null : Math.round((resolved / total) * 100),
+    };
+  };
+
   const renderLeaderboard = () => (
     <div className="grid gap-0">
-      {sampleLeaders.map((leader) => (
-        <article className="border-b border-stone-200 px-4 py-4" key={leader.id}>
+      {sampleLeaders.map((leader) => {
+        const rating = getLeaderRating(leader);
+
+        return (
+        <button
+          className="border-b border-stone-200 px-4 py-4 text-left transition hover:bg-stone-50"
+          key={leader.id}
+          type="button"
+          onClick={() => setSelectedLeader(leader)}
+        >
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-base font-black text-stone-950">{leader.name}</h2>
               <p className="text-sm text-stone-500">
                 {leader.role} / {leader.area}
               </p>
+              <p className="mt-1 text-xs font-semibold text-stone-500">
+                Community accountability estimate
+              </p>
             </div>
             <span className="rounded-full bg-emerald-700 px-3 py-1 text-sm font-black text-white">
-              {leader.score}
+              {rating.score ?? "N/A"}
             </span>
           </div>
           <p className="mt-2 text-sm font-semibold text-stone-600">
-            Pending issues: {leader.pendingIssues}
+            {getRatingLabel(rating.score)} / unresolved issues: {rating.unresolved}
           </p>
-        </article>
-      ))}
+        </button>
+        );
+      })}
     </div>
   );
 
@@ -759,7 +1043,7 @@ export default function XMtaaniApp() {
       <section className="border-b border-stone-200 px-4 py-4">
         <h2 className="font-black text-stone-950">Recent reports</h2>
         <div className="mt-3 grid gap-3">
-          {reports.slice(0, 4).map((report) => (
+          {publicReports.slice(0, 4).map((report) => (
             <button
               className="rounded-xl bg-stone-50 p-3 text-left transition hover:bg-stone-100"
               key={report.id}
@@ -809,6 +1093,9 @@ export default function XMtaaniApp() {
           ))}
         </div>
       </div>
+      <div className="border-b border-stone-200 px-4 py-4">
+        <TrustSafetyCard />
+      </div>
       {dashboardSection === "Reports" && renderFeed()}
       {dashboardSection === "Wards" && (
         <div className="grid gap-0">
@@ -816,7 +1103,7 @@ export default function XMtaaniApp() {
             <article className="border-b border-stone-200 px-4 py-4" key={ward}>
               <h2 className="font-black text-stone-950">{ward}</h2>
               <p className="text-sm text-stone-600">
-                {reports.filter((report) => report.ward === ward).length} reports
+                {publicReports.filter((report) => report.ward === ward).length} reports
               </p>
             </article>
           ))}
@@ -1108,10 +1395,15 @@ export default function XMtaaniApp() {
               </div>
 
               <div className="grid gap-3">
-                {sampleLeaders.map((leader) => (
-                  <div
-                    className="rounded-2xl border border-stone-100 bg-stone-50 p-3"
+                {sampleLeaders.map((leader) => {
+                  const rating = getLeaderRating(leader);
+
+                  return (
+                  <button
+                    className="rounded-2xl border border-stone-100 bg-stone-50 p-3 text-left transition hover:bg-stone-100"
                     key={leader.id}
+                    type="button"
+                    onClick={() => setSelectedLeader(leader)}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1123,14 +1415,15 @@ export default function XMtaaniApp() {
                         </p>
                       </div>
                       <span className="rounded-full bg-white px-2 py-1 text-xs font-black text-emerald-800">
-                        {leader.score}
+                        {rating.score ?? "N/A"}
                       </span>
                     </div>
                     <p className="mt-2 text-xs font-semibold text-stone-600">
-                      Pending issues: {leader.pendingIssues}
+                      {getRatingLabel(rating.score)}
                     </p>
-                  </div>
-                ))}
+                  </button>
+                  );
+                })}
               </div>
             </section>
 
@@ -1153,6 +1446,8 @@ export default function XMtaaniApp() {
                 ))}
               </div>
             </section>
+
+            <TrustSafetyCard />
           </div>
         </aside>
       </div>
@@ -1178,6 +1473,102 @@ export default function XMtaaniApp() {
           </button>
         ))}
       </nav>
+
+      {selectedLeader && (
+        <div className="fixed inset-0 z-40 flex items-start justify-center bg-stone-950/40 px-3 py-6 sm:items-center">
+          <section className="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-auto rounded-2xl bg-white p-4 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
+                  Community accountability estimate
+                </p>
+                <h2 className="mt-1 text-xl font-black text-stone-950">
+                  {selectedLeader.name}
+                </h2>
+                <p className="text-sm text-stone-500">
+                  {selectedLeader.role} / {selectedLeader.area}
+                </p>
+              </div>
+              <button
+                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100"
+                type="button"
+                onClick={() => setSelectedLeader(null)}
+                aria-label="Close leader detail"
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+
+            {(() => {
+              const rating = getLeaderRating(selectedLeader);
+
+              return (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-2xl bg-stone-50 p-3">
+                      <p className="text-xs font-bold text-stone-500">Score</p>
+                      <p className="mt-1 text-2xl font-black text-emerald-700">
+                        {rating.score ?? "N/A"}
+                      </p>
+                      <p className="text-xs font-semibold text-stone-600">
+                        {getRatingLabel(rating.score)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-stone-50 p-3">
+                      <p className="text-xs font-bold text-stone-500">Resolved</p>
+                      <p className="mt-1 text-2xl font-black text-stone-950">
+                        {rating.resolved}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-stone-50 p-3">
+                      <p className="text-xs font-bold text-stone-500">Unresolved</p>
+                      <p className="mt-1 text-2xl font-black text-stone-950">
+                        {rating.unresolved}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-xs font-semibold leading-5 text-stone-500">
+                    This is a community accountability estimate, not an official
+                    government score. It is computed from mock issue status data in
+                    this local MVP.
+                  </p>
+
+                  <div className="mt-4 grid gap-3">
+                    {rating.issues.map((issue) => (
+                      <article
+                        className="rounded-2xl border border-stone-200 p-3"
+                        key={issue.id}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-sm font-black text-stone-950">
+                              {issue.title}
+                            </h3>
+                            <p className="text-xs font-semibold text-stone-500">
+                              {issue.ward} / {issue.constituency} /{" "}
+                              {getCategoryLabel(issue.category)}
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-black capitalize text-stone-700">
+                            {issue.accountabilityStatus}
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+
+                    {rating.issues.length === 0 && (
+                      <p className="rounded-2xl bg-stone-50 p-4 text-sm font-semibold text-stone-500">
+                        No related public issues yet.
+                      </p>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </section>
+        </div>
+      )}
 
       {postOpen && (
         <div className="fixed inset-0 z-40 flex items-start justify-center bg-stone-950/40 px-3 py-6 sm:items-center">
