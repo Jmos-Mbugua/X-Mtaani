@@ -88,6 +88,7 @@ This helps residents start with what is closest to them while still allowing bro
 - Add location-aware ranking refinements without exposing exact user location.
 - Add analytics for ward, constituency, and county-level civic priorities.
 - Add accessibility and low-bandwidth optimizations.
+- Rating Leader's Efficiency over the course of their terms
 
 ## Hackathon Context
 
